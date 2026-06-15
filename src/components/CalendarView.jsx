@@ -5,7 +5,7 @@ import DayTimeline from './DayTimeline'
 const MOOD_FACE = { 1: '😣', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' }
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-export default function CalendarView({ habits, completions, tasks, moods, goals = [], onUpdateTask, onToggleTask, onAddTask, onDeleteTask }) {
+export default function CalendarView({ habits = [], completions, tasks, moods, goals = [], onUpdateTask, onToggleTask, onAddTask, onDeleteTask }) {
   const now = new Date()
   const [view, setView] = useState('month')
   const [year, setYear] = useState(now.getFullYear())
@@ -84,6 +84,7 @@ export default function CalendarView({ habits, completions, tasks, moods, goals 
           initialDate={dayDate}
           tasks={tasks}
           goals={goals}
+          habits={habits}
           onUpdateTask={onUpdateTask}
           onToggleTask={onToggleTask}
           onAddTask={onAddTask}

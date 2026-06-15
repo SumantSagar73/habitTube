@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Select from './Select'
 
-const DURATIONS = [25, 15, 50]
+const DURATIONS = [10, 25, 50, 90]
 
 export function fmtClock(secs) {
   const m = Math.floor(secs / 60)

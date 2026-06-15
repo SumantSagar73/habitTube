@@ -2,7 +2,32 @@
 // app shell loads without a network after the first visit.
 const CACHE = 'habittube-v1'
 
-self.addEventListener('install', () => self.skipWaiting())
+const PRECACHE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/favicon.svg',
+  '/icon.svg',
+  '/icons.svg',
+  '/notification.mp3',
+  '/alarm.mp3'
+]
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then(async (cache) => {
+      for (const asset of PRECACHE_ASSETS) {
+        try {
+          await cache.add(asset)
+        } catch (err) {
+          console.warn(`[sw] Pre-cache failed for: ${asset}`, err)
+        }
+      }
+    })
+  )
+  self.skipWaiting()
+})
+
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
 
 self.addEventListener('fetch', (e) => {

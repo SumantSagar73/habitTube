@@ -1,16 +1,19 @@
 import { useRef, useState } from 'react'
 import { AI_MODELS, aiTest } from '../ai'
 import { todayKey } from '../utils'
+import { getUserId } from '../sync'
 import Select from './Select'
 
 export default function SettingsModal({
   aiEnabled,
   aiModel,
   remindersEnabled,
+  soundEnabled,
   data,
   onToggleAi,
   onSetModel,
   onToggleReminders,
+  onToggleSound,
   onRestore,
   onClose,
 }) {
@@ -19,6 +22,17 @@ export default function SettingsModal({
   const [restoreMsg, setRestoreMsg] = useState('')
   const fileRef = useRef(null)
   const notifBlocked = typeof Notification !== 'undefined' && Notification.permission === 'denied'
+  const [userIdInput, setUserIdInput] = useState(() => getUserId())
+
+  function handleSaveUserId() {
+    const trimmed = userIdInput.trim()
+    if (!trimmed) return
+    if (window.confirm('Change Sync User ID? This will reload the app to pull data for the new ID.')) {
+      localStorage.setItem('habittube-user-id', trimmed)
+      localStorage.removeItem('habittube-updated-at')
+      window.location.reload()
+    }
+  }
 
   function downloadBackup() {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -30,6 +44,34 @@ export default function SettingsModal({
     URL.revokeObjectURL(url)
   }
 
+  function validateAndSanitizeBackup(parsed) {
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Backup data must be a JSON object.')
+    }
+    if (!Array.isArray(parsed.habits)) {
+      throw new Error('Invalid backup: "habits" must be an array.')
+    }
+    return {
+      habits: parsed.habits.filter(h => h && typeof h === 'object' && typeof h.name === 'string'),
+      completions: parsed.completions && typeof parsed.completions === 'object' && !Array.isArray(parsed.completions) ? parsed.completions : {},
+      notes: parsed.notes && typeof parsed.notes === 'object' && !Array.isArray(parsed.notes) ? parsed.notes : {},
+      missNotes: parsed.missNotes && typeof parsed.missNotes === 'object' && !Array.isArray(parsed.missNotes) ? parsed.missNotes : {},
+      goals: Array.isArray(parsed.goals) ? parsed.goals.filter(g => g && typeof g === 'object') : [],
+      tasks: parsed.tasks && typeof parsed.tasks === 'object' && !Array.isArray(parsed.tasks) ? parsed.tasks : {},
+      visions: parsed.visions && typeof parsed.visions === 'object' && !Array.isArray(parsed.visions) ? parsed.visions : {},
+      reviews: parsed.reviews && typeof parsed.reviews === 'object' && !Array.isArray(parsed.reviews) ? parsed.reviews : {},
+      aiEnabled: typeof parsed.aiEnabled === 'boolean' ? parsed.aiEnabled : true,
+      aiModel: typeof parsed.aiModel === 'string' ? parsed.aiModel : 'llama-3.3-70b-versatile',
+      ai: parsed.ai && typeof parsed.ai === 'object' ? parsed.ai : { motivation: null, insights: null },
+      chat: parsed.chat && typeof parsed.chat === 'object' && Array.isArray(parsed.chat.messages) ? parsed.chat : { messages: [] },
+      moods: parsed.moods && typeof parsed.moods === 'object' && !Array.isArray(parsed.moods) ? parsed.moods : {},
+      focusLog: Array.isArray(parsed.focusLog) ? parsed.focusLog.filter(f => f && typeof f === 'object') : [],
+      remindersEnabled: typeof parsed.remindersEnabled === 'boolean' ? parsed.remindersEnabled : false,
+      soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
+      theme: parsed.theme === 'light' || parsed.theme === 'dark' ? parsed.theme : 'dark',
+    }
+  }
+
   function onPickFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -37,9 +79,9 @@ export default function SettingsModal({
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result)
-        if (!parsed || !Array.isArray(parsed.habits)) throw new Error('Not a HabitTube backup.')
+        const sanitized = validateAndSanitizeBackup(parsed)
         if (!window.confirm('Restore this backup? It replaces your current data.')) return
-        onRestore(parsed)
+        onRestore(sanitized)
         setRestoreMsg('✓ Restored.')
       } catch (err) {
         setRestoreMsg(`Could not restore: ${err.message}`)
@@ -141,6 +183,22 @@ export default function SettingsModal({
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${remindersEnabled ? 'left-6' : 'left-1'}`} />
           </button>
         </div>
+
+        {/* sound toggle */}
+        <div className="mt-4 flex items-center justify-between rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div>
+            <p className="font-bold text-neutral-900 dark:text-white">Sound effects</p>
+            <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
+              Chimes and audio alerts for focus timer and reminders
+            </p>
+          </div>
+          <button
+            onClick={onToggleSound}
+            className={`relative h-7 w-12 rounded-full transition ${soundEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+          >
+            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${soundEnabled ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
         {remindersEnabled && notifBlocked && (
           <p className="mt-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
             Notifications are blocked in your browser — allow them for this site to get reminders.
@@ -151,6 +209,33 @@ export default function SettingsModal({
             Reminders fire while HabitTube is open in a tab.
           </p>
         )}
+
+        {/* synchronization settings */}
+        <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
+          Synchronization
+        </label>
+        <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <p className="font-bold text-neutral-900 dark:text-white">Sync User ID</p>
+          <p className="mb-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">
+            Set this to your previous MongoDB user ID to sync your data.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={userIdInput}
+              onChange={(e) => {
+                setUserIdInput(e.target.value)
+              }}
+              className="flex-1 rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:border-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:hover:border-neutral-500 dark:focus:border-neutral-500"
+            />
+            <button
+              onClick={handleSaveUserId}
+              className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            >
+              Update
+            </button>
+          </div>
+        </div>
 
         {/* data backup */}
         <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">

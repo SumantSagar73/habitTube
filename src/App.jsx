@@ -33,6 +33,7 @@ const TABS = [
 export default function App() {
   const [data, setData] = useStore()
   const [tab, setTab] = useState('today')
+  const [planMode, setPlanMode] = useState('focus') // 'focus' | 'outline'
   const [modal, setModal] = useState(null) // null | 'new' | habit object
   const [detailId, setDetailId] = useState(null)
   const [newMenu, setNewMenu] = useState(false)
@@ -53,6 +54,14 @@ export default function App() {
       focusLog: [...(d.focusLog || []), { date: todayKey(), minutes: f.durationMin, goalId: f.goalId, label: f.label }],
     }))
     setFocus((prev) => ({ ...prev, running: false, endsAt: null, remaining: prev.durationMin * 60 }))
+    if (data.soundEnabled) {
+      try {
+        const audio = new Audio('/alarm.mp3')
+        audio.play().catch(() => {})
+      } catch (err) {
+        console.warn('Could not play alarm sound:', err)
+      }
+    }
     try {
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         new Notification('Focus session done ⏱️', { body: f.label ? `Nice work on “${f.label}”.` : 'Nice deep-work session.' })
@@ -318,10 +327,10 @@ export default function App() {
   }
 
   // ---- daily tasks ----
-  function addTask(key, title, goalId, priority = 'medium') {
+  function addTask(key, title, goalId, priority = 'medium', habitId = null) {
     setData((d) => ({
       ...d,
-      tasks: { ...d.tasks, [key]: [...(d.tasks[key] || []), { id: uid(), title, done: false, goalId, priority }] },
+      tasks: { ...d.tasks, [key]: [...(d.tasks[key] || []), { id: uid(), title, done: false, goalId, habitId: habitId || null, priority }] },
     }))
   }
 
@@ -343,9 +352,27 @@ export default function App() {
     setData((d) => ({ ...d, tasks: { ...d.tasks, [key]: (d.tasks[key] || []).filter((t) => t.id !== id) } }))
   }
 
+  function moveTask(srcKey, destKey, taskId) {
+    setData((d) => {
+      const list = d.tasks[srcKey] || []
+      const task = list.find((t) => t.id === taskId)
+      if (!task) return d
+      const src = list.filter((t) => t.id !== taskId)
+      const dest = [...(d.tasks[destKey] || []), { ...task }]
+      return {
+        ...d,
+        tasks: {
+          ...d.tasks,
+          [srcKey]: src,
+          [destKey]: dest,
+        },
+      }
+    })
+  }
+
   return (
     <div className="min-h-screen bg-white text-neutral-900 transition-colors duration-300 dark:bg-[#0a0a0a] dark:text-white">
-      <div className="mx-auto w-full max-w-5xl px-5 pb-20 sm:px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-5 pb-20 sm:px-8">
         {/* header */}
         <header className="flex flex-wrap items-center gap-3 border-b border-neutral-200 py-7 dark:border-neutral-800">
           <h1 className="text-[22px] font-extrabold tracking-tight">
@@ -356,10 +383,10 @@ export default function App() {
             <span
               title={
                 syncStatus === 'synced'
-                  ? 'Synced to your MongoDB'
+                  ? 'Synced to Supabase'
                   : syncStatus === 'syncing'
                     ? 'Syncing…'
-                    : 'Offline — saved on this device (start the sync server to sync)'
+                    : 'Offline — saved on this device'
               }
               className="flex items-center gap-1.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500"
             >
@@ -451,22 +478,45 @@ export default function App() {
           </div>
         </header>
 
-        {/* tabs */}
-        <nav className="mt-7 mb-8 flex w-fit gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                tab === t.id
-                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                  : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        {/* tabs row */}
+        <div className="mt-7 mb-8 flex flex-wrap items-center justify-between gap-4">
+          <nav className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  tab === t.id
+                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                    : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+
+          {tab === 'plan' && (
+            <div className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+              {[
+                ['focus', 'Focus'],
+                ['outline', 'Outline'],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setPlanMode(id)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                    planMode === id
+                      ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                      : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <main className="animate-fade-up" key={tab}>
           {tab === 'today' && (
@@ -479,6 +529,7 @@ export default function App() {
               goals={data.goals}
               moods={data.moods}
               onToggle={toggleHabit}
+              onToggleOn={toggleHabitOn}
               onNoteChange={setNote}
               onMissNote={setMissNote}
               onSetMood={setMood}
@@ -507,6 +558,8 @@ export default function App() {
               habits={data.habits}
               completions={data.completions}
               reviews={data.reviews}
+              planMode={planMode}
+              setPlanMode={setPlanMode}
               onSaveGoal={saveGoal}
               onUpdateGoal={updateGoal}
               onDeleteGoal={deleteGoal}
@@ -515,6 +568,7 @@ export default function App() {
               onToggleTask={toggleTask}
               onUpdateTask={updateTask}
               onDeleteTask={deleteTask}
+              onMoveTask={moveTask}
               onUseTemplate={useTemplate}
               onOpenWizard={() => setWizard(true)}
               onSaveReview={saveReview}
@@ -612,10 +666,12 @@ export default function App() {
           aiEnabled={data.aiEnabled}
           aiModel={data.aiModel}
           remindersEnabled={data.remindersEnabled}
+          soundEnabled={data.soundEnabled}
           data={data}
           onToggleAi={() => setData((d) => ({ ...d, aiEnabled: !d.aiEnabled }))}
           onSetModel={(m) => setData((d) => ({ ...d, aiModel: m }))}
           onToggleReminders={toggleReminders}
+          onToggleSound={() => setData((d) => ({ ...d, soundEnabled: !d.soundEnabled }))}
           onRestore={restoreData}
           onClose={() => setSettings(false)}
         />

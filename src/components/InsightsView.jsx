@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { goalPercent, LEVEL_LABEL, LEVELS, periodLabel } from '../planUtils'
 import { addDays, dateKey, habitRate } from '../utils'
@@ -28,6 +29,66 @@ function MoodStrip({ moods }) {
             </div>
           )
         })}
+      </div>
+    </section>
+  )
+}
+
+function FocusChart({ focusLog = [], dark }) {
+  const data = useMemo(() => {
+    const out = []
+    for (let i = 6; i >= 0; i--) {
+      const d = addDays(new Date(), -i)
+      const key = dateKey(d)
+      const mins = focusLog.filter((f) => f.date === key).reduce((s, f) => s + (f.minutes || 0), 0)
+      out.push({
+        label: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        minutes: mins,
+      })
+    }
+    return out
+  }, [focusLog])
+
+  const totalMins = useMemo(() => focusLog.reduce((s, f) => s + (f.minutes || 0), 0), [focusLog])
+
+  const ink = dark ? '#f5f5f5' : '#171717'
+  const axisColor = dark ? '#737373' : '#a3a3a3'
+  const gridColor = dark ? '#262626' : '#e5e5e5'
+
+  return (
+    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+      <div className="mb-4 flex items-baseline justify-between">
+        <div>
+          <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Focus time</h3>
+          <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">Last 7 days</p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-extrabold text-neutral-900 dark:text-white">{totalMins} min</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">Total logged</p>
+        </div>
+      </div>
+
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+            <XAxis dataKey="label" tick={{ fill: axisColor, fontSize: 11 }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fill: axisColor, fontSize: 11 }} tickLine={false} axisLine={false} />
+            <Tooltip
+              cursor={{ fill: dark ? '#26262640' : '#e5e5e560' }}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null
+                return (
+                  <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-neutral-700 dark:bg-[#161616]">
+                    <p className="font-semibold text-neutral-900 dark:text-white">{payload[0].payload.label}</p>
+                    <p className="text-neutral-500 dark:text-neutral-400">{payload[0].value} minutes focused</p>
+                  </div>
+                )
+              }}
+            />
+            <Bar dataKey="minutes" fill={ink} radius={[4, 4, 0, 0]} barSize={24} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </section>
   )
@@ -109,6 +170,8 @@ export default function InsightsView({
       {appData && <Achievements data={appData} />}
 
       {moods && Object.keys(moods).length > 0 && <MoodStrip moods={moods} />}
+
+      {appData && <FocusChart focusLog={appData.focusLog} dark={dark} />}
 
       {/* goal progress */}
       {goals.length > 0 && (

@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { addDays, dateKey, todayKey } from '../utils'
 import GoalOptions from './GoalOptions'
 import Select from './Select'
+import { decodeLink, encodeLink } from './TodayView'
 
 const pad = (n) => String(n).padStart(2, '0')
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6am → 11pm
 const hourLabel = (h) => `${((h + 11) % 12) + 1} ${h < 12 ? 'AM' : 'PM'}`
 
-function Chip({ task, dayKey, goals, onToggleTask, onDeleteTask, onUpdateTask }) {
+function Chip({ task, dayKey, goals, habits, onToggleTask, onDeleteTask, onUpdateTask }) {
+  const linkValue = encodeLink(task.goalId, task.habitId)
   return (
     <div
       draggable
@@ -32,16 +34,30 @@ function Chip({ task, dayKey, goals, onToggleTask, onDeleteTask, onUpdateTask })
       <span className={`flex-1 truncate text-sm font-medium ${task.done ? 'text-neutral-400 line-through dark:text-neutral-600' : 'text-neutral-800 dark:text-neutral-100'}`}>
         {task.title}
       </span>
-      {/* link to a goal */}
-      {goals && goals.length > 0 && (
+      {/* unified goal + habit link */}
+      {(goals.length > 0 || habits.length > 0) && (
         <Select
-          value={task.goalId || ''}
-          onChange={(e) => onUpdateTask(dayKey, task.id, { goalId: e.target.value || null })}
+          value={linkValue}
+          onChange={(e) => {
+            const { goalId, habitId } = decodeLink(e.target.value)
+            onUpdateTask(dayKey, task.id, { goalId, habitId })
+          }}
           compact
           className="w-28 shrink-0"
         >
-          <option value="">no goal</option>
-          <GoalOptions goals={goals} />
+          <option value="">no link</option>
+          {goals.length > 0 && (
+            <GoalOptions goals={goals} prefix="g_" />
+          )}
+          {habits.length > 0 && (
+            <optgroup label="Habits">
+              {habits.map((h) => (
+                <option key={h.id} value={`h_${h.id}`}>
+                  {h.emoji} {h.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </Select>
       )}
       {/* tap-to-schedule fallback (works without dragging) */}
@@ -58,6 +74,20 @@ function Chip({ task, dayKey, goals, onToggleTask, onDeleteTask, onUpdateTask })
           </option>
         ))}
       </select>
+      {task.time && (
+        <select
+          value={task.duration || 1}
+          onChange={(e) => onUpdateTask(dayKey, task.id, { duration: Number(e.target.value) })}
+          title="Set duration"
+          className="shrink-0 rounded-md border border-neutral-200 bg-transparent py-0.5 pl-1 pr-0.5 text-[11px] font-bold text-neutral-500 outline-none dark:border-neutral-700 dark:text-neutral-300 dark:[color-scheme:dark]"
+        >
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((d) => (
+            <option key={d} value={d}>
+              {d} {d === 1 ? 'hr' : 'hrs'}
+            </option>
+          ))}
+        </select>
+      )}
       <button
         onClick={() => onDeleteTask(dayKey, task.id)}
         className="text-neutral-300 transition hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
@@ -70,7 +100,7 @@ function Chip({ task, dayKey, goals, onToggleTask, onDeleteTask, onUpdateTask })
   )
 }
 
-export default function DayTimeline({ initialDate, tasks, goals = [], onUpdateTask, onToggleTask, onAddTask, onDeleteTask }) {
+export default function DayTimeline({ initialDate, tasks, goals = [], habits = [], onUpdateTask, onToggleTask, onAddTask, onDeleteTask }) {
   const [date, setDate] = useState(() => initialDate || new Date())
   const dk = dateKey(date)
   const list = tasks[dk] || []
@@ -89,13 +119,13 @@ export default function DayTimeline({ initialDate, tasks, goals = [], onUpdateTa
   }
   function add() {
     if (!text.trim()) return
-    onAddTask(dk, text.trim(), null, 'medium')
+    onAddTask(dk, text.trim(), null, 'medium', null)
     setText('')
   }
 
   return (
     <div>
-      {/* day navigation — lets you build tomorrow’s (or any day’s) routine */}
+      {/* day navigation — lets you build tomorrow's (or any day's) routine */}
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-bold text-neutral-900 dark:text-white">
           {dayLabel} {isToday && <span className="text-neutral-400 dark:text-neutral-500">· today</span>}
@@ -134,7 +164,7 @@ export default function DayTimeline({ initialDate, tasks, goals = [], onUpdateTa
           <div className="flex flex-wrap gap-2">
             {unscheduled.map((t) => (
               <div key={t.id} className="w-full sm:w-auto sm:min-w-[260px]">
-                <Chip task={t} dayKey={dk} goals={goals} onToggleTask={onToggleTask} onDeleteTask={onDeleteTask} onUpdateTask={onUpdateTask} />
+                <Chip task={t} dayKey={dk} goals={goals} habits={habits} onToggleTask={onToggleTask} onDeleteTask={onDeleteTask} onUpdateTask={onUpdateTask} />
               </div>
             ))}
           </div>
@@ -145,7 +175,12 @@ export default function DayTimeline({ initialDate, tasks, goals = [], onUpdateTa
       <div className="max-h-[60vh] overflow-y-auto rounded-2xl border border-neutral-200 dark:border-neutral-800">
         {HOURS.map((h) => {
           const time = `${pad(h)}:00`
-          const inHour = list.filter((t) => t.time && parseInt(t.time, 10) === h)
+          const inHour = list.filter((t) => {
+            if (!t.time) return false
+            const start = parseInt(t.time, 10)
+            const dur = t.duration || 1
+            return h >= start && h < start + dur
+          })
           const current = isToday && h === nowHour
           return (
             <div
@@ -156,7 +191,7 @@ export default function DayTimeline({ initialDate, tasks, goals = [], onUpdateTa
               }}
               onDragLeave={() => setOver((o) => (o === h ? null : o))}
               onDrop={(e) => dropOn(e, time)}
-              className={`flex min-h-[52px] gap-3 border-b border-neutral-100 px-3 py-2 last:border-0 dark:border-neutral-800/60 ${
+              className={`flex min-h-[52px] border-b border-neutral-100 px-3 py-2 last:border-0 dark:border-neutral-800/60 ${
                 over === h ? 'bg-neutral-100 dark:bg-neutral-800/60' : current ? 'bg-neutral-50 dark:bg-neutral-900/40' : ''
               }`}
             >
@@ -164,9 +199,42 @@ export default function DayTimeline({ initialDate, tasks, goals = [], onUpdateTa
                 {hourLabel(h)}
               </span>
               <div className="flex flex-1 flex-col gap-1.5">
-                {inHour.map((t) => (
-                  <Chip key={t.id} task={t} dayKey={dk} goals={goals} onToggleTask={onToggleTask} onDeleteTask={onDeleteTask} onUpdateTask={onUpdateTask} />
-                ))}
+                {inHour.map((t) => {
+                  const startHour = parseInt(t.time, 10)
+                  const isStart = h === startHour
+                  if (isStart) {
+                    return (
+                      <Chip
+                        key={t.id}
+                        task={t}
+                        dayKey={dk}
+                        goals={goals}
+                        habits={habits}
+                        onToggleTask={onToggleTask}
+                        onDeleteTask={onDeleteTask}
+                        onUpdateTask={onUpdateTask}
+                      />
+                    )
+                  } else {
+                    return (
+                      <div
+                        key={`${t.id}-cont-${h}`}
+                        className="flex items-center gap-2 rounded-lg border border-dashed border-neutral-200 bg-neutral-50/20 px-2.5 py-1 text-neutral-800/60 dark:border-neutral-800 dark:bg-neutral-950/10 dark:text-neutral-200/50"
+                      >
+                        <span className="h-4 w-4 shrink-0 rounded border border-neutral-300 dark:border-neutral-700 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800/40">
+                          {t.done && (
+                            <svg className="h-2.5 w-2.5 text-neutral-400" viewBox="0 0 20 20" fill="none">
+                              <path d="M5 10.5l3.5 3.5L15 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className={`flex-1 truncate text-xs font-medium italic ${t.done ? 'line-through' : ''}`}>
+                          {t.title} <span className="not-italic text-[9px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-600">(continued)</span>
+                        </span>
+                      </div>
+                    )
+                  }
+                })}
               </div>
             </div>
           )

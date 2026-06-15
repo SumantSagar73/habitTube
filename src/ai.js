@@ -176,7 +176,7 @@ You can also UPDATE existing items the user already has (use the exact title fro
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
 
-export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {} }) {
+export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {} }) {
   const ctx = { goals, tasks, habits, completions }
   const key = todayKey()
   const byId = Object.fromEntries(goals.map((g) => [g.id, g]))
@@ -187,6 +187,18 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
   const rates = habits.map((h) => `${h.name} ${habitRate(h, completions, 30)}%`)
   const reasons = []
   for (const h of habits) for (const r of Object.values(missNotes[h.id] || {})) if (r?.trim()) reasons.push(r.trim())
+
+  const yearKey = key.slice(0, 4)
+  const vision = visions[yearKey]
+  const visionLine = vision && vision.trim() ? `North-Star Vision for ${yearKey}: "${vision.trim()}".` : ''
+
+  const recentNotes = Object.entries(notes)
+    .filter(([, text]) => text && text.trim())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 3)
+  const notesLine = recentNotes.length
+    ? `Recent daily journal reflections:\n${recentNotes.map(([d, t]) => `- ${d}: "${t.trim()}"`).join('\n')}`
+    : ''
 
   // goals WITH how they connect (which goal each one ladders up into)
   const goalLines = goals.map((g) => {
@@ -221,6 +233,7 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
     : ''
 
   return [
+    visionLine,
     `Today (${key}): ${due.length} habits due, ${doneToday.length} done.`,
     moodLine,
     streaks.some((x) => x.s > 0) ? `Streaks: ${streaks.filter((x) => x.s > 0).map((x) => `${x.n} ${x.s}d`).join(', ')}.` : 'No active streaks.',
@@ -228,6 +241,7 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
     goalLines.length ? `Goals and how they connect (sub-goals feed the goal above): ${goalLines.join('; ')}.` : 'No goals set yet.',
     taskLine,
     reasons.length ? `Recent reasons for skipping: ${reasons.slice(0, 10).join(' / ')}.` : 'No skip reasons logged.',
+    notesLine,
     lastReview ? `Most recent review note: "${lastReview[1].note}".` : '',
   ].filter(Boolean).join('\n')
 }

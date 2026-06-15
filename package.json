@@ -5,17 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "node server/index.js",
-    "start": "concurrently -n app,sync -c blue,green \"npm:dev\" \"npm:server\"",
+    "start": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "migrate": "node migrate.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.3.0",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "mongodb": "^7.3.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "recharts": "^3.8.1",
@@ -32,6 +30,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "mongodb": "^7.3.0",
     "vite": "^8.0.12"
   }
 }

@@ -5,13 +5,14 @@ import {
   goalsAt,
   LEVEL_LABEL,
   nextPeriodLabel,
+  nextPeriodStartKey,
   periodLabel,
   tasksInPeriod,
 } from '../planUtils'
-import { formatNice } from '../utils'
+import { formatNice, todayKey, uid } from '../utils'
 import AIText from './AIText'
 
-export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, aiModel, onSaveReview, onCarryTask, onClose }) {
+export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, aiModel, onSaveReview, onCarryTask, onSaveGoal, onClose }) {
   const [aiText, setAiText] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
@@ -44,6 +45,37 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
   const note = review?.note || ''
   const goalNotes = review?.goalNotes || {}
   const nextLabel = nextPeriodLabel(level, periodKey)
+  const targetKey = nextPeriodStartKey(level, periodKey)
+
+  function alreadyCarried(g) {
+    return ctx.goals.some(
+      (cg) =>
+        cg.period === targetKey &&
+        cg.level === level &&
+        cg.title.trim().toLowerCase() === g.title.trim().toLowerCase()
+    )
+  }
+
+  function carryGoal(g) {
+    if (alreadyCarried(g)) return
+    onSaveGoal({
+      id: uid(),
+      level,
+      period: targetKey,
+      parentId: null,
+      title: g.title,
+      color: g.color,
+      type: g.type,
+      target: g.target,
+      unit: g.unit,
+      habitId: g.habitId,
+      habitTarget: g.habitTarget,
+      manualPct: null,
+      done: false,
+      current: 0,
+      createdAt: todayKey(),
+    })
+  }
 
   function patch(p) {
     onSaveReview(periodKey, { ...review, ...p })
@@ -92,12 +124,21 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
                     </span>
                   </div>
                   {!hit && (
-                    <input
-                      value={goalNotes[g.id] || ''}
-                      onChange={(e) => patch({ goalNotes: { ...goalNotes, [g.id]: e.target.value } })}
-                      placeholder="What got in the way? (the honest answer)"
-                      className="mt-2.5 w-full rounded-xl border border-neutral-200 bg-transparent px-3.5 py-2 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
-                    />
+                    <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <input
+                        value={goalNotes[g.id] || ''}
+                        onChange={(e) => patch({ goalNotes: { ...goalNotes, [g.id]: e.target.value } })}
+                        placeholder="What got in the way? (the honest answer)"
+                        className="flex-1 rounded-xl border border-neutral-200 bg-transparent px-3.5 py-2 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
+                      />
+                      <button
+                        onClick={() => carryGoal(g)}
+                        disabled={alreadyCarried(g)}
+                        className="shrink-0 rounded-full border border-neutral-200 px-3.5 py-1.5 text-xs font-bold text-neutral-700 transition hover:border-neutral-400 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
+                      >
+                        {alreadyCarried(g) ? 'Carried ✓' : `Carry to ${nextLabel} →`}
+                      </button>
+                    </div>
                   )}
                 </div>
               )

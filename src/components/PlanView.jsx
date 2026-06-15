@@ -4,13 +4,17 @@ import { addDays, dateKey, formatNice, nextPriority, sortByPriority, todayKey, u
 import {
   currentPeriods,
   daysOfWeek,
+  goalPercent,
   goalsAt,
+  isoWeekStart,
   LEVEL_LABEL,
   monthsOfQuarter,
+  nextPeriodKey,
   periodKeys,
   periodLabel,
   periodPercent,
   periodShort,
+  prevPeriodKey,
   quartersOfYear,
   tasksInWeek,
   weeksOfMonth,
@@ -23,6 +27,7 @@ import PlanTree from './PlanTree'
 import { PriorityDot, PrioritySelect } from './Priority'
 import ReviewModal from './ReviewModal'
 import Select from './Select'
+import { decodeLink, encodeLink } from './TodayView'
 
 const CHILD_LEVEL = { year: 'quarter', quarter: 'month', month: 'week' }
 
@@ -61,12 +66,15 @@ export default function PlanView({
   onToggleTask,
   onUpdateTask,
   onDeleteTask,
+  onMoveTask,
   onUseTemplate,
   onOpenWizard,
   onSaveReview,
   onCarryTask,
   aiEnabled,
   aiModel,
+  planMode,
+  setPlanMode,
 }) {
   const now = currentPeriods()
   const [year, setYear] = useState(Number(now.year))
@@ -75,7 +83,6 @@ export default function PlanView({
   const [week, setWeek] = useState(null)
   const [editor, setEditor] = useState(null) // { initial, level, period, parentId, defaultColor }
   const [review, setReview] = useState(null) // { level, period }
-  const [planMode, setPlanMode] = useState('focus') // 'focus' (drill) | 'outline' (tree)
 
   const ctx = useMemo(() => ({ goals, tasks, habits, completions }), [goals, tasks, habits, completions])
   const yearKey = String(year)
@@ -94,11 +101,33 @@ export default function PlanView({
       setWeek(null)
     }
   }
-  function changeYear(delta) {
-    setYear((y) => y + delta)
-    setQuarter(null)
-    setMonth(null)
-    setWeek(null)
+  function navigatePeriod(direction) {
+    if (level === 'year') {
+      const nextYear = year + direction
+      setYear(nextYear)
+    } else if (level === 'quarter') {
+      const nextKey = direction === 1 ? nextPeriodKey('quarter', quarter) : prevPeriodKey('quarter', quarter)
+      setQuarter(nextKey)
+      const y = Number(nextKey.split('-Q')[0])
+      if (y !== year) setYear(y)
+    } else if (level === 'month') {
+      const nextKey = direction === 1 ? nextPeriodKey('month', month) : prevPeriodKey('month', month)
+      setMonth(nextKey)
+      const y = Number(nextKey.split('-')[0])
+      if (y !== year) setYear(y)
+      const m = Number(nextKey.split('-')[1])
+      const q = Math.floor((m - 1) / 3) + 1
+      setQuarter(`${y}-Q${q}`)
+    } else if (level === 'week') {
+      const nextKey = direction === 1 ? nextPeriodKey('week', week) : prevPeriodKey('week', week)
+      setWeek(nextKey)
+      const mon = isoWeekStart(nextKey)
+      const thu = addDays(mon, 3)
+      const pk = periodKeys(thu)
+      setYear(Number(pk.year))
+      setQuarter(pk.quarter)
+      setMonth(pk.month)
+    }
   }
 
   // parent-goal options for the editor, resolved within the goal's own branch
@@ -139,6 +168,32 @@ export default function PlanView({
   const here = goalsAt(goals, level, key)
   const overall = periodPercent(level, key, ctx)
   const parentTitle = (g) => goals.find((x) => x.id === g.parentId)?.title
+
+  const prevKey = prevPeriodKey(level, key)
+  const prevGoals = goalsAt(goals, level, prevKey).filter((g) => goalPercent(g, ctx) < 100)
+  const pendingPrevGoals = prevGoals.filter(
+    (g) => !here.some((hg) => hg.title.trim().toLowerCase() === g.title.trim().toLowerCase())
+  )
+
+  function bringGoal(g) {
+    onSaveGoal({
+      id: uid(),
+      level,
+      period: key,
+      parentId: null,
+      title: g.title,
+      color: g.color,
+      type: g.type,
+      target: g.target,
+      unit: g.unit,
+      habitId: g.habitId,
+      habitTarget: g.habitTarget,
+      manualPct: null,
+      done: false,
+      current: 0,
+      createdAt: todayKey(),
+    })
+  }
 
   const crumbs = [{ lvl: 'year', label: yearKey }]
   if (quarter) crumbs.push({ lvl: 'quarter', label: periodShort('quarter', quarter) })
@@ -216,6 +271,7 @@ export default function PlanView({
         aiModel={aiModel}
         onSaveReview={onSaveReview}
         onCarryTask={onCarryTask}
+        onSaveGoal={onSaveGoal}
         onClose={() => setReview(null)}
       />
     )
@@ -237,32 +293,6 @@ export default function PlanView({
           <span className="shrink-0 rounded-full bg-neutral-900 px-4 py-2 text-sm font-bold text-white dark:bg-white dark:text-neutral-900">Review →</span>
         </button>
       )}
-
-      {/* focus / outline toggle */}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
-          {planMode === 'focus' ? 'Drill in level by level.' : 'Your whole plan as a collapsible outline — click ▸ to expand.'}
-        </p>
-        <div className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
-          {[
-            ['focus', 'Focus'],
-            ['outline', 'Outline'],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setPlanMode(id)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
-                planMode === id
-                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                  : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {planMode === 'outline' ? (
         <PlanTree
           goals={goals}
@@ -274,14 +304,12 @@ export default function PlanView({
         />
       ) : (
         <>
-          {/* breadcrumb + year switch */}
+          {/* breadcrumb + period switch */}
           <div className="flex flex-wrap items-center gap-2">
-            {level === 'year' && (
-              <div className="mr-1 flex items-center gap-1">
-                <button onClick={() => changeYear(-1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">‹</button>
-                <button onClick={() => changeYear(1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">›</button>
-              </div>
-            )}
+            <div className="mr-1 flex items-center gap-1">
+              <button onClick={() => navigatePeriod(-1)} title={`Previous ${LEVEL_LABEL[level].toLowerCase()}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">‹</button>
+              <button onClick={() => navigatePeriod(1)} title={`Next ${LEVEL_LABEL[level].toLowerCase()}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">›</button>
+            </div>
             {crumbs.map((c, i) => (
               <div key={c.lvl} className="flex items-center gap-2">
                 {i > 0 && <span className="text-neutral-300 dark:text-neutral-700">▸</span>}
@@ -297,111 +325,195 @@ export default function PlanView({
             ))}
           </div>
 
-          {/* this period's overall progress */}
-          <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">{LEVEL_LABEL[level]}</p>
-                <h2 className="text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white">{periodLabel(level, key)}</h2>
-              </div>
-              <div className="flex items-center gap-4">
-                {level !== 'year' && (
+          {/* Two-column layout: left = sidebar (progress + quarters), right = goals + tasks */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+
+            {/* RIGHT column visually (goals + weekly task board) — rendered first for mobile */}
+            <div className="space-y-6 lg:col-span-8 lg:order-2">
+              {/* goals at this level */}
+              <section>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">{LEVEL_LABEL[level]} goals</h3>
                   <button
-                    onClick={() => setReview({ level, period: key })}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                      reviews[key]?.done ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900' : 'border-neutral-200 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500'
-                    }`}
+                    onClick={() => setEditor({ initial: null, level, period: key, parentId: null })}
+                    className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600 dark:hover:text-white"
                   >
-                    {reviews[key]?.done ? '✓ Reviewed' : 'Review'}
+                    + Advanced Goal
                   </button>
-                )}
-                <div className="text-right">
-                  <p className="text-3xl font-extrabold tabular-nums tracking-tight text-neutral-900 dark:text-white">{overall == null ? '—' : `${overall}%`}</p>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">on track</p>
                 </div>
-              </div>
-            </div>
-            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-              <div className="h-full rounded-full bg-neutral-900 transition-all duration-500 dark:bg-white" style={{ width: `${overall || 0}%` }} />
-            </div>
-            {level === 'year' && (
-              <div className="mt-5">
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">North-star vision for {yearKey}</label>
-                <textarea
-                  value={visions[yearKey] || ''}
-                  onChange={(e) => onSetVision(yearKey, e.target.value)}
-                  rows={2}
-                  placeholder="Who do you want to have become by the end of this year?"
-                  className="w-full resize-y rounded-xl border border-neutral-200 bg-transparent px-4 py-3 font-serif text-lg italic text-neutral-800 outline-none transition placeholder:not-italic placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
-                />
-              </div>
-            )}
-          </section>
 
-          {/* goals at this level */}
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">{LEVEL_LABEL[level]} goals</h3>
-              <button
-                onClick={() => setEditor({ initial: null, level, period: key, parentId: null })}
-                className="rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-              >
-                + Add goal
-              </button>
-            </div>
-            {here.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm font-medium text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
-                No {LEVEL_LABEL[level].toLowerCase()} goals yet. Break down what “{periodLabel(level, key)}” should achieve.
-              </div>
-            ) : (
-              <div className="grid gap-2.5 lg:grid-cols-2">
-                {here.map((g) => (
-                  <GoalCard
-                    key={g.id}
-                    goal={g}
-                    ctx={ctx}
-                    parentTitle={parentTitle(g)}
-                    onUpdate={onUpdateGoal}
-                    onEdit={(goal) => setEditor({ initial: goal })}
-                    onDelete={onDeleteGoal}
+                {/* Quick Add Goal Input Box */}
+                <div className="mb-4 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder={`Quick add a ${LEVEL_LABEL[level].toLowerCase()} goal…`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.target.value.trim()) {
+                        onSaveGoal({
+                          id: uid(),
+                          level,
+                          period: key,
+                          parentId: null,
+                          title: e.target.value.trim(),
+                          color: GOAL_COLORS[goals.length % GOAL_COLORS.length],
+                          type: 'checklist',
+                          manualPct: null,
+                          done: false,
+                          current: 0,
+                          createdAt: todayKey(),
+                        })
+                        e.target.value = ''
+                      }
+                    }}
+                    className="flex-1 rounded-xl border border-neutral-200 bg-transparent px-4 py-2.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
                   />
-                ))}
-              </div>
-            )}
-          </section>
+                  <button
+                    onClick={(e) => {
+                      const inputEl = e.currentTarget.previousSibling
+                      if (inputEl && inputEl.value.trim()) {
+                        onSaveGoal({
+                          id: uid(),
+                          level,
+                          period: key,
+                          parentId: null,
+                          title: inputEl.value.trim(),
+                          color: GOAL_COLORS[goals.length % GOAL_COLORS.length],
+                          type: 'checklist',
+                          manualPct: null,
+                          done: false,
+                          current: 0,
+                          createdAt: todayKey(),
+                        })
+                        inputEl.value = ''
+                      }
+                    }}
+                    className="rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                  >
+                    Add
+                  </button>
+                </div>
 
-          {/* drill into child periods */}
-          {childCards && (
-            <section>
-              <h3 className="mb-3 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">
-                {level === 'year' ? 'Quarters' : level === 'quarter' ? 'Months' : 'Weeks'}
-              </h3>
-              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {childCards.map((c) => (
-                  <PeriodCard key={c.k} label={c.label} sub={c.sub} pct={c.pct} onClick={c.onClick} />
-                ))}
-              </div>
-            </section>
-          )}
+                {here.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm font-medium text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
+                    No {LEVEL_LABEL[level].toLowerCase()} goals yet. Break down what "{periodLabel(level, key)}" should achieve.
+                  </div>
+                ) : (
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {here.map((g) => (
+                      <GoalCard
+                        key={g.id}
+                        goal={g}
+                        ctx={ctx}
+                        parentTitle={parentTitle(g)}
+                        onUpdate={onUpdateGoal}
+                        onEdit={(goal) => setEditor({ initial: goal })}
+                        onDelete={onDeleteGoal}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
 
-          {/* week: daily task board */}
-          {level === 'week' && (
-            <WeekBoard
-              week={week}
-              tasks={tasks}
-              linkGoals={[
-                ...goalsAt(goals, 'year', yearKey),
-                ...(quarter ? goalsAt(goals, 'quarter', quarter) : []),
-                ...(month ? goalsAt(goals, 'month', month) : []),
-                ...here,
-              ]}
-              goals={goals}
-              onAddTask={onAddTask}
-              onToggleTask={onToggleTask}
-              onUpdateTask={onUpdateTask}
-              onDeleteTask={onDeleteTask}
-            />
-          )}
+              {/* week: daily task board */}
+              {level === 'week' && (
+                <WeekBoard
+                  week={week}
+                  tasks={tasks}
+                  linkGoals={[
+                    ...goalsAt(goals, 'year', yearKey),
+                    ...(quarter ? goalsAt(goals, 'quarter', quarter) : []),
+                    ...(month ? goalsAt(goals, 'month', month) : []),
+                    ...here,
+                  ]}
+                  goals={goals}
+                  habits={habits}
+                  onAddTask={onAddTask}
+                  onToggleTask={onToggleTask}
+                  onUpdateTask={onUpdateTask}
+                  onDeleteTask={onDeleteTask}
+                  onMoveTask={onMoveTask}
+                />
+              )}
+            </div>
+
+            {/* LEFT sidebar (period progress, child period cards, carry-forward) — order-1 so it appears left on desktop */}
+            <div className="space-y-5 lg:col-span-4 lg:order-1">
+              {/* Period progress card */}
+              <section className="rounded-3xl border border-neutral-200 p-5 dark:border-neutral-800 dark:bg-[#111]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">{LEVEL_LABEL[level]}</p>
+                <h2 className="mt-0.5 text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">{periodLabel(level, key)}</h2>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <p className="text-4xl font-extrabold tabular-nums tracking-tight text-neutral-900 dark:text-white">{overall == null ? '—' : `${overall}%`}</p>
+                  {level !== 'year' && (
+                    <button
+                      onClick={() => setReview({ level, period: key })}
+                      className={`mb-1 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                        reviews[key]?.done ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900' : 'border-neutral-200 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500'
+                      }`}
+                    >
+                      {reviews[key]?.done ? '✓ Reviewed' : 'Review'}
+                    </button>
+                  )}
+                </div>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                  <div className="h-full rounded-full bg-neutral-900 transition-all duration-500 dark:bg-white" style={{ width: `${overall || 0}%` }} />
+                </div>
+                {level === 'year' && (
+                  <div className="mt-4">
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">North-star vision for {yearKey}</label>
+                    <textarea
+                      value={visions[yearKey] || ''}
+                      onChange={(e) => onSetVision(yearKey, e.target.value)}
+                      rows={3}
+                      placeholder="Who do you want to have become by the end of this year?"
+                      className="w-full resize-y rounded-xl border border-neutral-200 bg-transparent px-3.5 py-2.5 font-serif text-sm italic text-neutral-800 outline-none transition placeholder:not-italic placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
+                    />
+                  </div>
+                )}
+              </section>
+
+              {/* Child period drill-down cards */}
+              {childCards && (
+                <section>
+                  <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
+                    {level === 'year' ? 'Quarters' : level === 'quarter' ? 'Months' : 'Weeks'}
+                  </h3>
+                  <div className="grid gap-2">
+                    {childCards.map((c) => (
+                      <PeriodCard key={c.k} label={c.label} sub={c.sub} pct={c.pct} active={false} onClick={c.onClick} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Bring-forward incomplete goals */}
+              {pendingPrevGoals.length > 0 && (
+                <section className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4 dark:border-neutral-800 dark:bg-neutral-900/10">
+                  <p className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                    Carry from {periodLabel(level, prevKey)}
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {pendingPrevGoals.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => bringGoal(g)}
+                        className="flex w-full items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left text-xs font-bold text-neutral-700 transition hover:border-neutral-400 dark:border-neutral-800 dark:bg-[#161616] dark:text-neutral-200 dark:hover:border-neutral-600"
+                      >
+                        <span className="text-emerald-500">+</span>
+                        <span className="flex-1 truncate">{g.title}</span>
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => pendingPrevGoals.forEach(bringGoal)}
+                      className="mt-1 rounded-xl bg-neutral-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
+                    >
+                      Bring all ({pendingPrevGoals.length})
+                    </button>
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
         </>
       )}
 
@@ -411,7 +523,7 @@ export default function PlanView({
   )
 }
 
-function WeekBoard({ week, tasks, linkGoals, goals, onAddTask, onToggleTask, onUpdateTask, onDeleteTask }) {
+function WeekBoard({ week, tasks, linkGoals, goals, habits = [], onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onMoveTask }) {
   const days = daysOfWeek(week)
   const today = todayKey()
   return (
@@ -436,13 +548,15 @@ function WeekBoard({ week, tasks, linkGoals, goals, onAddTask, onToggleTask, onU
                     task={t}
                     dk={dk}
                     linkGoals={linkGoals}
+                    habits={habits}
                     onToggleTask={onToggleTask}
                     onUpdateTask={onUpdateTask}
                     onDeleteTask={onDeleteTask}
+                    onMoveTask={onMoveTask}
                   />
                 ))}
               </div>
-              <TaskAdder dk={dk} linkGoals={linkGoals} onAddTask={onAddTask} />
+              <TaskAdder dk={dk} linkGoals={linkGoals} habits={habits} onAddTask={onAddTask} />
             </div>
           )
         })}
@@ -451,9 +565,10 @@ function WeekBoard({ week, tasks, linkGoals, goals, onAddTask, onToggleTask, onU
   )
 }
 
-function WeekTask({ task, dk, linkGoals, onToggleTask, onUpdateTask, onDeleteTask }) {
+function WeekTask({ task, dk, linkGoals, habits = [], onToggleTask, onUpdateTask, onDeleteTask, onMoveTask }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(task.title)
+  const linkValue = encodeLink(task.goalId, task.habitId)
 
   function saveTitle() {
     const v = draft.trim()
@@ -504,12 +619,42 @@ function WeekTask({ task, dk, linkGoals, onToggleTask, onUpdateTask, onDeleteTas
           {task.title}
         </button>
       )}
-      {linkGoals.length > 0 && (
-        <Select value={task.goalId || ''} onChange={(e) => onUpdateTask(dk, task.id, { goalId: e.target.value || null })} compact className="w-28 shrink-0">
-          <option value="">no goal</option>
-          <GoalOptions goals={linkGoals} />
+      {(linkGoals.length > 0 || habits.length > 0) && (
+        <Select
+          value={linkValue}
+          onChange={(e) => {
+            const { goalId, habitId } = decodeLink(e.target.value)
+            onUpdateTask(dk, task.id, { goalId, habitId })
+          }}
+          compact
+          className="w-28 shrink-0"
+        >
+          <option value="">no link</option>
+          {linkGoals.length > 0 && (
+            <GoalOptions goals={linkGoals} prefix="g_" />
+          )}
+          {habits.length > 0 && (
+            <optgroup label="Habits">
+              {habits.map((h) => (
+                <option key={h.id} value={`h_${h.id}`}>{h.emoji} {h.name}</option>
+              ))}
+            </optgroup>
+          )}
         </Select>
       )}
+      <button
+        onClick={() => {
+          const [y, m, d] = dk.split('-').map(Number)
+          const nextDay = addDays(new Date(y, m - 1, d), 1)
+          onMoveTask(dk, dateKey(nextDay), task.id)
+        }}
+        title="Move to next day"
+        className="shrink-0 text-neutral-300 transition hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </button>
       <button onClick={() => onDeleteTask(dk, task.id)} className="shrink-0 text-neutral-300 transition hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300">
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <path d="M6 6l12 12M18 6L6 18" />
@@ -519,13 +664,14 @@ function WeekTask({ task, dk, linkGoals, onToggleTask, onUpdateTask, onDeleteTas
   )
 }
 
-function TaskAdder({ dk, linkGoals, onAddTask }) {
+function TaskAdder({ dk, linkGoals, habits = [], onAddTask }) {
   const [text, setText] = useState('')
-  const [goalId, setGoalId] = useState('')
+  const [linkValue, setLinkValue] = useState('')
   const [priority, setPriority] = useState('medium')
   function add() {
     if (!text.trim()) return
-    onAddTask(dk, text.trim(), goalId || null, priority)
+    const { goalId, habitId } = decodeLink(linkValue)
+    onAddTask(dk, text.trim(), goalId, priority, habitId)
     setText('')
   }
   return (
@@ -538,10 +684,19 @@ function TaskAdder({ dk, linkGoals, onAddTask }) {
         placeholder="Add a task…"
         className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-1.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
       />
-      {linkGoals.length > 0 && (
-        <Select value={goalId} onChange={(e) => setGoalId(e.target.value)} compact className="w-40">
-          <option value="">no goal</option>
-          <GoalOptions goals={linkGoals} />
+      {(linkGoals.length > 0 || habits.length > 0) && (
+        <Select value={linkValue} onChange={(e) => setLinkValue(e.target.value)} compact className="w-40">
+          <option value="">no link</option>
+          {linkGoals.length > 0 && (
+            <GoalOptions goals={linkGoals} prefix="g_" />
+          )}
+          {habits.length > 0 && (
+            <optgroup label="Habits">
+              {habits.map((h) => (
+                <option key={h.id} value={`h_${h.id}`}>{h.emoji} {h.name}</option>
+              ))}
+            </optgroup>
+          )}
         </Select>
       )}
       <button onClick={add} className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-bold text-white dark:bg-white dark:text-neutral-900">

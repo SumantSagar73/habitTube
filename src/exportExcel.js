@@ -29,7 +29,7 @@ function addSheet(XLSX, wb, name, rows, emptyMessage) {
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
 
-export default async function exportExcel({ habits, completions, notes, missNotes, goals = [], tasks = {}, visions = {}, reviews = {}, moods = {} }) {
+export default async function exportExcel({ habits, completions, notes, missNotes, goals = [], tasks = {}, visions = {}, reviews = {}, moods = {}, focusLog = [] }) {
   // Loaded on demand so the heavy spreadsheet library stays out of the main bundle.
   const XLSX = await import('xlsx')
   const wb = XLSX.utils.book_new()
@@ -133,6 +133,8 @@ export default async function exportExcel({ habits, completions, notes, missNote
         Task: t.title,
         Priority: t.priority || 'medium',
         Done: t.done ? '✓' : '',
+        Time: t.time || '',
+        Duration: t.duration ? `${t.duration} hr${t.duration > 1 ? 's' : ''}` : '',
         Goal: t.goalId ? byId[t.goalId]?.title || '' : '',
       })
     }
@@ -156,6 +158,15 @@ export default async function exportExcel({ habits, completions, notes, missNote
       'Miss reasons': Object.values(r.goalNotes || {}).filter(Boolean).join(' | '),
     }))
   addSheet(XLSX, wb, 'Reviews', reviewRows, 'No reviews yet')
+
+  // 9. Focus sessions
+  const focusRows = focusLog.map((f) => ({
+    Date: f.date,
+    Label: f.label || '',
+    Minutes: f.minutes || 0,
+    Goal: f.goalId ? byId[f.goalId]?.title || '' : '',
+  }))
+  addSheet(XLSX, wb, 'Focus sessions', focusRows, 'No focus sessions recorded')
 
   XLSX.writeFile(wb, `habittube-export-${today}.xlsx`)
 }

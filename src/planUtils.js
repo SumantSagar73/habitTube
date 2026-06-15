@@ -255,3 +255,33 @@ export function nextPeriodLabel(level, key) {
   const next = periodKeys(new Date(y, m - 1, d))
   return periodLabel(level, next[level])
 }
+
+export function nextPeriodKey(level, key) {
+  const startKey = nextPeriodStartKey(level, key)
+  const [y, m, d] = startKey.split('-').map(Number)
+  const next = periodKeys(new Date(y, m - 1, d))
+  return next[level]
+}
+
+export function prevPeriodKey(level, key) {
+  if (level === 'year') {
+    return String(Number(key) - 1)
+  }
+  if (level === 'quarter') {
+    const [y, q] = key.split('-Q').map(Number)
+    if (q === 1) return `${y - 1}-Q4`
+    return `${y}-Q${q - 1}`
+  }
+  if (level === 'month') {
+    const [y, m] = key.split('-').map(Number)
+    if (m === 1) return `${y - 1}-12`
+    return `${y}-${String(m - 1).padStart(2, '0')}`
+  }
+  if (level === 'week') {
+    const mon = isoWeekStart(key)
+    const prevMon = addDays(mon, -7)
+    const iw = isoWeek(prevMon)
+    return `${iw.year}-W${String(iw.week).padStart(2, '0')}`
+  }
+  return key
+}

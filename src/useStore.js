@@ -18,6 +18,7 @@ const DEFAULT_DATA = {
   moods: {}, // { 'YYYY-MM-DD': 1-5 }
   focusLog: [], // [{ date, minutes, goalId, label }]
   remindersEnabled: false,
+  soundEnabled: true,
   theme: 'dark',
 }
 

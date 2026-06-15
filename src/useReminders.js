@@ -44,6 +44,14 @@ export default function useReminders(data) {
     if (!data.remindersEnabled || typeof Notification === 'undefined') return
 
     function notify(title, body, tag) {
+      if (data.soundEnabled) {
+        try {
+          const audio = new Audio('/notification.mp3')
+          audio.play().catch(() => {})
+        } catch (err) {
+          console.warn('Could not play notification sound:', err)
+        }
+      }
       try {
         const n = new Notification(title, { body, tag })
         n.onclick = () => {
