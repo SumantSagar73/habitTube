@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { goalPercent, LEVEL_LABEL, LEVELS, periodLabel } from '../planUtils'
 import { addDays, dateKey, habitRate } from '../utils'
@@ -104,18 +104,80 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
-function GoalBar({ goal, ctx }) {
+function GoalProgressCard({ goal, ctx }) {
   const pct = goalPercent(goal, ctx)
+  const isDone = pct >= 100
+
+  const typeIcons = {
+    checklist: '📋',
+    numeric: '🔢',
+    habit: '🔁',
+  }
+  const icon = typeIcons[goal.type] || '🎯'
+
+  const parent = goal.parentId ? ctx.goals.find((g) => g.id === goal.parentId) : null
+
+  let progressText = ''
+  if (goal.type === 'numeric') {
+    progressText = `${goal.current || 0} / ${goal.target} ${goal.unit || ''}`
+  } else if (goal.type === 'habit') {
+    const habit = ctx.habits.find((h) => h.id === goal.habitId)
+    progressText = habit ? `Completions: ${goal.habitTarget || 0}` : ''
+  }
+
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-1/3 min-w-0 shrink-0">
-        <span className="block truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">{goal.title}</span>
-        <span className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500">{periodLabel(goal.level, goal.period)}</span>
-      </span>
-      <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-        <span className="block h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: goal.color }} />
-      </span>
-      <span className="w-10 shrink-0 text-right text-sm font-extrabold tabular-nums text-neutral-900 dark:text-white">{pct}%</span>
+    <div 
+      className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-[#151515]"
+      style={{ borderLeftWidth: '5px', borderLeftColor: goal.color }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-base" title={`${goal.type} goal`}>{icon}</span>
+            <h4 className="truncate text-sm font-bold text-neutral-800 dark:text-neutral-100">{goal.title}</h4>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-neutral-400 dark:text-neutral-500">
+            <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-bold uppercase tracking-wider text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+              {LEVEL_LABEL[goal.level]}
+            </span>
+            <span>·</span>
+            <span>{periodLabel(goal.level, goal.period)}</span>
+            {parent && (
+              <>
+                <span>·</span>
+                <span className="truncate text-neutral-500 dark:text-neutral-400">↳ feeds "{parent.title}"</span>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {isDone ? (
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400">
+            ✓ Done
+          </span>
+        ) : (
+          <span className="shrink-0 font-mono text-sm font-extrabold tabular-nums text-neutral-800 dark:text-white">
+            {pct}%
+          </span>
+        )}
+      </div>
+
+      {progressText && (
+        <p className="mt-3 text-xs font-bold text-neutral-600 dark:text-neutral-400">
+          {progressText}
+        </p>
+      )}
+
+      <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+        <div 
+          className="h-full rounded-full transition-all duration-700 ease-out" 
+          style={{ 
+            width: `${pct}%`, 
+            backgroundColor: goal.color,
+            boxShadow: isDone ? `0 0 10px ${goal.color}80` : 'none'
+          }} 
+        />
+      </div>
     </div>
   )
 }
@@ -134,6 +196,9 @@ export default function InsightsView({
   onSaveInsights,
   appData,
 }) {
+  const [levelFilter, setLevelFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+
   const ctx = { goals, tasks: tasks || {}, habits, completions }
   const perHabit = habits.map((h) => ({
     name: `${h.emoji} ${h.name.length > 14 ? h.name.slice(0, 13) + '…' : h.name}`,
@@ -155,7 +220,6 @@ export default function InsightsView({
 
   return (
     <div className="space-y-6">
-      {/* AI coach analysis */}
       <AIInsights
         enabled={aiEnabled}
         model={aiModel}
@@ -163,7 +227,9 @@ export default function InsightsView({
         habits={habits}
         completions={completions}
         goals={goals}
+        tasks={tasks}
         missNotes={missNotes}
+        moods={moods}
         onSave={onSaveInsights}
       />
 
@@ -174,28 +240,100 @@ export default function InsightsView({
       {appData && <FocusChart focusLog={appData.focusLog} dark={dark} />}
 
       {/* goal progress */}
-      {goals.length > 0 && (
-        <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
-          <h3 className="mb-1 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Goal progress</h3>
-          <p className="mb-5 text-sm font-medium text-neutral-400 dark:text-neutral-500">
-            Every goal across your cascade, rolled up to today.
-          </p>
-          <div className="space-y-6">
-            {goalsByLevel.map(({ lvl, items }) => (
-              <div key={lvl}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
-                  {LEVEL_LABEL[lvl]}
+      {goals.length > 0 && (() => {
+        const avgCompletion = Math.round(goals.reduce((acc, g) => acc + goalPercent(g, ctx), 0) / goals.length)
+        const completedGoals = goals.filter((g) => goalPercent(g, ctx) >= 100).length
+        const activeGoals = goals.length - completedGoals
+
+        return (
+          <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+            <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4 mb-5">
+              <div>
+                <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Goal statistics</h3>
+                <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
+                  Track your active objectives and cascade rates
                 </p>
-                <div className="space-y-2.5">
-                  {items.map((g) => (
-                    <GoalBar key={g.id} goal={g} ctx={ctx} />
-                  ))}
+              </div>
+              
+              <div className="flex flex-wrap gap-2.5 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                <div className="rounded-2xl bg-neutral-50 px-4 py-2 dark:bg-neutral-900">
+                  Avg Progress: <span className="font-mono text-sm font-extrabold text-neutral-900 dark:text-white ml-1">{avgCompletion}%</span>
+                </div>
+                <div className="rounded-2xl bg-neutral-50 px-4 py-2 dark:bg-neutral-900">
+                  Completed: <span className="font-mono text-sm font-extrabold text-neutral-900 dark:text-white ml-1">{completedGoals}/{goals.length}</span>
+                </div>
+                <div className="rounded-2xl bg-neutral-50 px-4 py-2 dark:bg-neutral-900">
+                  Active: <span className="font-mono text-sm font-extrabold text-neutral-900 dark:text-white ml-1">{activeGoals}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </div>
+
+            {/* Filters Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-b border-neutral-100 py-4 mb-6 dark:border-neutral-900/50">
+              <div className="flex flex-wrap gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+                {['all', 'year', 'quarter', 'month', 'week'].map((lvl) => (
+                  <button
+                    key={lvl}
+                    onClick={() => setLevelFilter(lvl)}
+                    className={`rounded-full px-3.5 py-1 text-xs font-bold transition uppercase tracking-wider ${
+                      levelFilter === lvl
+                        ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                        : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                    }`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+                {['all', 'active', 'completed'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`rounded-full px-3.5 py-1 text-xs font-bold transition uppercase tracking-wider ${
+                      statusFilter === status
+                        ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                        : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cards Grid */}
+            {(() => {
+              const filteredGoals = goals.filter((g) => {
+                const pct = goalPercent(g, ctx)
+                const matchesLevel = levelFilter === 'all' || g.level === levelFilter
+                const matchesStatus =
+                  statusFilter === 'all' ||
+                  (statusFilter === 'active' && pct < 100) ||
+                  (statusFilter === 'completed' && pct >= 100)
+                return matchesLevel && matchesStatus
+              })
+
+              if (filteredGoals.length === 0) {
+                return (
+                  <div className="rounded-2xl border border-dashed border-neutral-300 p-12 text-center text-sm font-semibold text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
+                    No matching goals found. Try adjusting your filters.
+                  </div>
+                )
+              }
+
+              return (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredGoals.map((g) => (
+                    <GoalProgressCard key={g.id} goal={g} ctx={ctx} />
+                  ))}
+                </div>
+              )
+            })()}
+          </section>
+        )
+      })()}
 
       {habits.length > 0 && (
         <>

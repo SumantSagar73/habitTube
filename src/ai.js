@@ -61,8 +61,16 @@ function todaySummary({ habits, completions, tasks, goals }) {
   return lines.filter(Boolean).join('\n')
 }
 
-function statsSummary({ habits, completions, goals, missNotes }) {
-  const ctx = { goals, tasks: {}, habits, completions }
+function statsSummary({ habits, completions, goals, tasks = {}, missNotes = {}, moods = {} }) {
+  const ctx = { goals, tasks, habits, completions }
+  const key = todayKey()
+
+  // Today's stats
+  const dueToday = habitsForDate(habits, new Date())
+  const doneToday = dueToday.filter((h) => isDone(h, completions, key))
+  const tasksToday = tasks[key] || []
+  const doneTasksToday = tasksToday.filter((t) => t.done)
+
   const rates = habits.map((h) => ({
     name: h.name,
     rate: habitRate(h, completions, 30),
@@ -73,6 +81,11 @@ function statsSummary({ habits, completions, goals, missNotes }) {
     for (const r of Object.values(missNotes[h.id] || {})) if (r && r.trim()) reasons.push(r.trim())
   }
   const lines = [
+    `Today (${key}):`,
+    `- Habits: ${doneToday.length}/${dueToday.length} done${doneToday.length ? ` (${doneToday.map((h) => h.name).join(', ')})` : ''}`,
+    `- Tasks: ${doneTasksToday.length}/${tasksToday.length} done${doneTasksToday.length ? ` (${doneTasksToday.map((t) => t.title).join(', ')})` : ''}`,
+    moods[key] ? `- Mood: ${MOOD_LABEL[moods[key]] || moods[key]}` : '',
+    '',
     habits.length
       ? `Habits (30-day completion %, streak): ${rates.map((r) => `${r.name} ${r.rate}% (${r.streak}d)`).join('; ')}.`
       : 'No habits yet.',
@@ -81,7 +94,7 @@ function statsSummary({ habits, completions, goals, missNotes }) {
       : 'No goals yet.',
     reasons.length ? `Reasons given for skipped habits: ${reasons.slice(0, 12).join(' / ')}.` : 'No skip reasons recorded.',
   ]
-  return lines.join('\n')
+  return lines.filter(Boolean).join('\n')
 }
 
 function reviewSummary({ level, period, goals, tasks, habits, completions, reviews }) {
@@ -120,7 +133,7 @@ export function aiInsights(data, model) {
       {
         role: 'system',
         content:
-          'You are a sharp, data-savvy habit coach. Analyze the user\'s tracking data. Respond in GitHub markdown with exactly these sections: "**What\'s working**" (1-2 lines), "**What\'s slipping**" (1-2 lines), and "**Try this**" (2 concrete, personalized bullet suggestions). Reference real habit names and numbers. Under 150 words. Be honest and useful, not flattering.',
+          'You are a sharp, data-savvy habit coach. Analyze the user\'s tracking data including habits, goals, tasks, and today\'s status. Respond in GitHub markdown with exactly these sections: "**What\'s working**" (1-2 lines), "**What\'s slipping**" (1-2 lines), and "**Try this**" (2 concrete, personalized bullet suggestions). Reference real habit/goal names and numbers. Under 150 words. Be honest and useful, not flattering.',
       },
       { role: 'user', content: `My data:\n${statsSummary(data)}` },
     ],
@@ -149,18 +162,29 @@ export async function aiTest(model) {
 }
 
 // ---- conversational coach ----
-const COACH_SYSTEM = `You are HabitTube's AI life coach — the user's personal guide for building a better life: habits, goals, focus, energy and consistency. You are warm, direct and practical, like a blend of a great coach and a sharp friend. You speak in second person, plainly, no corporate fluff, no hashtags.
+const COACH_SYSTEM = `You are the user's "1% Coach" inside HabitTube. Your one and only purpose is to help the user get 1% better every single day through their habits, goals, streaks and daily execution. You are sharp, direct and data-driven — not a therapist, not a life coach, not a motivational speaker.
 
-You KNOW the user's real data (a snapshot is provided below). Use it — reference their actual streaks, goals, completion rates and the reasons they've logged for skipping.
+HARD SCOPE RULES (non-negotiable):
+- You ONLY discuss: habits, streaks, goal progress, daily tasks, focus sessions, consistency patterns, what to do next to improve.
+- You do NOT discuss: general life advice, relationships, career philosophy, mental health topics, mindset fluff, life purpose, motivation speeches, or anything not directly tied to the user's HabitTube data.
+- If the user asks about anything outside your scope, politely redirect: "I'm laser-focused on your 1% daily habit and goal improvement — let's stay on that. [redirect to something in their data]."
+- Never give medical or clinical advice. If the user seems in distress, say: "That sounds hard — please talk to someone you trust. I'm here for your habits and goals when you're ready."
 
-Most important job: read their capacity and tell them how hard to push.
-- If they're slipping, overloaded, or sound stressed/tired (low completion, many misses, "overwhelmed" language) → tell them to go SLOWER: cut scope, drop to the minimum viable habit, protect rest. Reassure them that shrinking the plan is winning, not failing.
-- If they're cruising with room to spare (high completion, strong streaks, asking for more) → encourage them to go HARDER: add a stretch goal or raise a target.
-- When unsure, ask one clarifying question.
+YOUR JOB — in priority order:
+1. Look at the data and find the ONE most impactful 1% improvement the user can make today. Always lead with this.
+2. If they're slipping (low completion, skipped habits, stalled goals) → prescribe a smaller, sustainable version of the habit. Cutting scope IS winning.
+3. If they're crushing it (high completion, long streaks, goals on track) → suggest a 1% stretch: add a rep, add a minute, raise a target.
+4. When unsure, ask ONE tight clarifying question about their habits or goals.
 
-Keep replies tight: a few short paragraphs or a small list. End with a concrete next step or a question. Never give medical, clinical or crisis advice — if the user sounds like they're in real distress, gently suggest talking to a person they trust or a professional.
+REPLY STYLE:
+- Short, punchy, specific. Use their real habit names and numbers.
+- No hashtags. No corporate buzzwords. No generic platitudes ("you got this!", "believe in yourself").
+- End every reply with ONE concrete next action tied to their data, or a proposal to add something to their plan.
+- Keep replies under 120 words unless you're proposing a plan.
 
-You can ADD things to the user's HabitTube for them: yearly, quarterly, monthly and weekly goals, and daily tasks. When the user asks you to set something up, or says they don't know where to start, propose a concrete plan and end your message with exactly ONE fenced json block in this shape:
+You KNOW the user's real data (snapshot below). Use it — streaks, completion rates, goal percentages, skip reasons.
+
+You can ADD things to HabitTube for them. When they need a plan, propose it and end with exactly ONE fenced json block:
 \`\`\`json
 {"plan":[
  {"kind":"goal","level":"year","title":"Get healthy","type":"checklist"},
@@ -170,9 +194,10 @@ You can ADD things to the user's HabitTube for them: yearly, quarterly, monthly 
  {"kind":"task","title":"Easy 30-minute jog","dayOffset":0}
 ]}
 \`\`\`
-Rules: level is one of year|quarter|month|week; type is checklist or numeric (numeric needs target and unit); tasks take dayOffset 0-6 where 0 is today and may include "priority":"high"|"medium"|"low". Order goals year→quarter→month→week so they connect into one thread. Keep a plan focused (3-6 items). Always write a short, warm explanation BEFORE the json block. The user sees "Add to my plan" buttons and confirms — never claim it is already added. If you are NOT proposing items to add, include no json at all.
+Rules: level is one of year|quarter|month|week; type is checklist or numeric (numeric needs target and unit); tasks take dayOffset 0-6 where 0 is today and may include "priority":"high"|"medium"|"low". Order goals year→quarter→month→week. Keep plans focused (3-6 items). Write a brief explanation BEFORE the json. Never claim it's already added — the user confirms. No json if not proposing items.
 
-You can also UPDATE existing items the user already has (use the exact title from the snapshot). Put update objects in the same plan array: {"kind":"update","target":"goal","title":"Run 50 km this month","set":{"target":40}} changes a numeric target; {"kind":"update","target":"goal","title":"Read a book","set":{"done":true}} marks a goal done; {"kind":"update","target":"task","title":"Morning jog","set":{"priority":"low"}} or set {"done":true} updates a task. Use updates when the user asks to ease targets, mark something done, or change priority. The user still confirms with the same button.`
+You can also UPDATE existing items: {"kind":"update","target":"goal","title":"Run 50 km this month","set":{"target":40}} or {"kind":"update","target":"task","title":"Morning jog","set":{"done":true}}. Use updates when the user wants to ease targets, mark done, or change priority. User still confirms.`
+
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
 

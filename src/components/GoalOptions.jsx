@@ -12,7 +12,7 @@ export default function GoalOptions({ goals, prefix = '' }) {
         {items.map((g) => (
           <option key={g.id} value={`${prefix}${g.id}`}>
             {g.title}
-            {level !== 'year' ? ` · ${periodShort(level, g.period)}` : ''}
+            {level !== 'year' && g.period ? ` · ${periodShort(level, g.period)}` : ''}
           </option>
         ))}
       </optgroup>

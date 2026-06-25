@@ -60,12 +60,12 @@ function Chip({ task, dayKey, goals, habits, onToggleTask, onDeleteTask, onUpdat
           )}
         </Select>
       )}
-      {/* tap-to-schedule fallback (works without dragging) */}
-      <select
+      <Select
         value={task.time ? String(parseInt(task.time, 10)) : ''}
         onChange={(e) => onUpdateTask(dayKey, task.id, { time: e.target.value === '' ? null : `${pad(Number(e.target.value))}:00` })}
         title="Set a time"
-        className="shrink-0 rounded-md border border-neutral-200 bg-transparent py-0.5 pl-1 pr-0.5 text-[11px] font-bold text-neutral-500 outline-none dark:border-neutral-700 dark:text-neutral-300 dark:[color-scheme:dark]"
+        compact
+        className="w-20 shrink-0"
       >
         <option value="">⏰</option>
         {HOURS.map((h) => (
@@ -73,20 +73,21 @@ function Chip({ task, dayKey, goals, habits, onToggleTask, onDeleteTask, onUpdat
             {hourLabel(h)}
           </option>
         ))}
-      </select>
+      </Select>
       {task.time && (
-        <select
+        <Select
           value={task.duration || 1}
           onChange={(e) => onUpdateTask(dayKey, task.id, { duration: Number(e.target.value) })}
           title="Set duration"
-          className="shrink-0 rounded-md border border-neutral-200 bg-transparent py-0.5 pl-1 pr-0.5 text-[11px] font-bold text-neutral-500 outline-none dark:border-neutral-700 dark:text-neutral-300 dark:[color-scheme:dark]"
+          compact
+          className="w-16 shrink-0"
         >
           {[1, 2, 3, 4, 5, 6, 7, 8].map((d) => (
             <option key={d} value={d}>
               {d} {d === 1 ? 'hr' : 'hrs'}
             </option>
           ))}
-        </select>
+        </Select>
       )}
       <button
         onClick={() => onDeleteTask(dayKey, task.id)}

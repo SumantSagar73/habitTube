@@ -10,6 +10,7 @@ import TodayView from './components/TodayView'
 import GoalWizard from './components/GoalWizard'
 import SettingsModal from './components/SettingsModal'
 import CoachChat from './components/CoachChat'
+import CoachWidget from './components/CoachWidget'
 import { fmtClock } from './components/FocusTimer'
 import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey } from './planUtils'
@@ -24,7 +25,6 @@ const LEVEL_ORDER = ['year', 'quarter', 'month', 'week']
 const TABS = [
   { id: 'today', label: 'Today' },
   { id: 'plan', label: 'Plan' },
-  { id: 'coach', label: 'Coach' },
   { id: 'habits', label: 'Habits' },
   { id: 'insights', label: 'Insights' },
   { id: 'calendar', label: 'Calendar' },
@@ -327,10 +327,10 @@ export default function App() {
   }
 
   // ---- daily tasks ----
-  function addTask(key, title, goalId, priority = 'medium', habitId = null) {
+  function addTask(key, title, goalId, priority = 'medium', habitId = null, extra = {}) {
     setData((d) => ({
       ...d,
-      tasks: { ...d.tasks, [key]: [...(d.tasks[key] || []), { id: uid(), title, done: false, goalId, habitId: habitId || null, priority }] },
+      tasks: { ...d.tasks, [key]: [...(d.tasks[key] || []), { id: uid(), title, done: false, goalId, habitId: habitId || null, priority, ...extra }] },
     }))
   }
 
@@ -374,12 +374,48 @@ export default function App() {
     <div className="min-h-screen bg-white text-neutral-900 transition-colors duration-300 dark:bg-[#0a0a0a] dark:text-white">
       <div className="mx-auto w-full max-w-[1440px] px-5 pb-20 sm:px-8">
         {/* header */}
-        <header className="flex flex-wrap items-center gap-3 border-b border-neutral-200 py-7 dark:border-neutral-800">
-          <h1 className="text-[22px] font-extrabold tracking-tight">
-            HabitTube<span className="text-neutral-400 dark:text-neutral-600">.</span>
-          </h1>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-200 py-6 dark:border-neutral-800">
+          <div className="flex items-center gap-6">
+            <h1 className="text-[22px] font-extrabold tracking-tight shrink-0">
+              HabitTube<span className="text-neutral-400 dark:text-neutral-600">.</span>
+            </h1>
 
-          <div className="ml-auto flex items-center gap-2.5">
+            {/* Desktop Tabs */}
+            <nav className="hidden md:flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`rounded-full px-4.5 py-1.5 text-sm font-semibold transition ${
+                    tab === t.id
+                      ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                      : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Mobile Tabs */}
+          <nav className="flex md:hidden w-full overflow-x-auto no-scrollbar gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 rounded-full py-1.5 text-center text-xs font-semibold transition ${
+                  tab === t.id
+                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                    : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2.5 ml-auto sm:ml-0">
             <span
               title={
                 syncStatus === 'synced'
@@ -478,25 +514,9 @@ export default function App() {
           </div>
         </header>
 
-        {/* tabs row */}
-        <div className="mt-7 mb-8 flex flex-wrap items-center justify-between gap-4">
-          <nav className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                  tab === t.id
-                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                    : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-
-          {tab === 'plan' && (
+        {/* sub tabs row / actions for specific tabs (like Plan's Focus/Outline) */}
+        {tab === 'plan' && (
+          <div className="mt-6 mb-7 flex justify-end animate-fade-up">
             <div className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
               {[
                 ['focus', 'Focus'],
@@ -515,8 +535,10 @@ export default function App() {
                 </button>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {tab !== 'plan' && <div className="h-6" />}
 
         <main className="animate-fade-up" key={tab}>
           {tab === 'today' && (
@@ -526,7 +548,16 @@ export default function App() {
               notes={data.notes}
               missNotes={data.missNotes}
               tasks={data.tasks}
-              goals={data.goals}
+              goals={(() => {
+                const now = currentPeriods()
+                return data.goals.filter((g) => {
+                  if (g.level === 'year') return g.period === now.year
+                  if (g.level === 'quarter') return g.period === now.quarter
+                  if (g.level === 'month') return g.period === now.month
+                  if (g.level === 'week') return g.period === now.week
+                  return true
+                })
+              })()}
               moods={data.moods}
               onToggle={toggleHabit}
               onToggleOn={toggleHabitOn}
@@ -577,16 +608,7 @@ export default function App() {
               aiModel={data.aiModel}
             />
           )}
-          {tab === 'coach' && (
-            <CoachChat
-              enabled={data.aiEnabled}
-              model={data.aiModel}
-              data={data}
-              messages={data.chat.messages}
-              onSetMessages={setChatMessages}
-              onApplyPlan={applyPlan}
-            />
-          )}
+
           {tab === 'habits' && (
             <ManageView
               habits={data.habits}
@@ -676,6 +698,14 @@ export default function App() {
           onClose={() => setSettings(false)}
         />
       )}
+      <CoachWidget
+        enabled={data.aiEnabled}
+        model={data.aiModel}
+        data={data}
+        messages={data.chat.messages}
+        onSetMessages={setChatMessages}
+        onApplyPlan={applyPlan}
+      />
     </div>
   )
 }

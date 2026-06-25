@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aiInsights } from '../ai'
 import AIText from './AIText'
 
-export default function AIInsights({ enabled, model, cached, habits, completions, goals, missNotes, onSave }) {
+export default function AIInsights({ enabled, model, cached, habits, completions, goals, tasks, missNotes, moods, onSave }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -10,7 +10,7 @@ export default function AIInsights({ enabled, model, cached, habits, completions
     setLoading(true)
     setError('')
     try {
-      const text = await aiInsights({ habits, completions, goals, missNotes }, model)
+      const text = await aiInsights({ habits, completions, goals, tasks, missNotes, moods }, model)
       onSave({ text, at: Date.now() })
     } catch (e) {
       setError(e.message)

@@ -84,19 +84,27 @@ export function daysOfWeek(weekKey) {
 
 // ---- labels ----
 export function periodLabel(level, key) {
+  if (!key) return ''
   if (level === 'year') return key
   if (level === 'quarter') {
-    const [y, q] = key.split('-Q')
-    return `Q${q} ${y}`
+    const parts = key.split('-Q')
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return key
+    return `Q${parts[1]} ${parts[0]}`
   }
   if (level === 'month') {
-    const [y, m] = key.split('-')
-    return `${MONTH_NAMES[+m - 1]} ${y}`
+    const parts = key.split('-')
+    if (parts.length < 2) return key
+    const monthIdx = +parts[1] - 1
+    if (monthIdx < 0 || monthIdx > 11 || !MONTH_NAMES[monthIdx]) return key
+    return `${MONTH_NAMES[monthIdx]} ${parts[0]}`
   }
   if (level === 'week') {
+    const wParts = key.split('-W')
+    if (wParts.length !== 2 || isNaN(+wParts[0]) || isNaN(+wParts[1])) return key
     const days = daysOfWeek(key)
     const a = days[0]
     const b = days[6]
+    if (isNaN(a.getTime()) || isNaN(b.getTime())) return key
     const sameMonth = a.getMonth() === b.getMonth()
     const fmt = (d, withMonth) =>
       withMonth ? `${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}` : `${d.getDate()}`
@@ -106,8 +114,17 @@ export function periodLabel(level, key) {
 }
 
 export function periodShort(level, key) {
-  if (level === 'quarter') return `Q${key.split('-Q')[1]}`
-  if (level === 'month') return MONTH_NAMES[+key.split('-')[1] - 1].slice(0, 3)
+  if (!key) return ''
+  if (level === 'quarter') {
+    const q = key.split('-Q')[1]
+    return q ? `Q${q}` : key
+  }
+  if (level === 'month') {
+    const monthIdx = +key.split('-')[1] - 1
+    return (monthIdx >= 0 && monthIdx <= 11 && MONTH_NAMES[monthIdx])
+      ? MONTH_NAMES[monthIdx].slice(0, 3)
+      : key
+  }
   if (level === 'week') return periodLabel('week', key)
   return key
 }
