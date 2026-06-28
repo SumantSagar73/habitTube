@@ -594,6 +594,17 @@ export default function App() {
                 </>
               )}
             </div>
+            <a
+              href="https://sumantsagar73.github.io/habitTube/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="User manual"
+              className="hidden md:flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
+            >
+              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </a>
             <button
               onClick={() => setSettings(true)}
               title="Settings"

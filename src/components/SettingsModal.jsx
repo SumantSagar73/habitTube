@@ -295,8 +295,23 @@ export default function SettingsModal({
           AI runs through Groq via the local dev server, so your API key stays on your machine and never enters the
           browser. It works while the app runs with <span className="font-bold">npm run dev</span>. To change the key,
           edit <span className="font-bold">.env.local</span> and restart. Install HabitTube to your device from your
-          browser’s “Install app” option.
+          browser's "Install app" option.
         </p>
+
+        <div className="mt-6 flex items-center justify-between border-t border-neutral-100 pt-5 dark:border-neutral-800">
+          <span className="text-xs font-semibold text-neutral-400 dark:text-neutral-500">HabitTube v1.0</span>
+          <a
+            href="https://sumantsagar73.github.io/habitTube/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-full border border-neutral-200 px-3.5 py-1.5 text-xs font-semibold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:text-white"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            User manual
+          </a>
+        </div>
       </div>
     </div>
   )
