@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { quoteOfTheDay } from '../quotes'
 import { addDays, dateKey, formatNice, habitsForDate, isDone, nextPriority, sortByPriority, todayKey } from '../utils'
 import AICoach from './AICoach'
+import Confetti from './Confetti'
 import DayTimeline from './DayTimeline'
 import FocusTimer from './FocusTimer'
 import GoalOptions from './GoalOptions'
@@ -9,6 +10,7 @@ import HabitCard from './HabitCard'
 import { PriorityDot, PrioritySelect } from './Priority'
 import ProgressRing from './ProgressRing'
 import Select from './Select'
+import StreakLeaderboard from './StreakLeaderboard'
 
 function accountabilityMessage(pendingHabits, doneHabits, totalHabits, pendingTasks, doneTasks, totalTasks, hour) {
   const total = totalHabits + totalTasks
@@ -75,8 +77,10 @@ export default function TodayView({
   notes,
   missNotes,
   tasks,
+  recurringTasks,
   goals,
   moods,
+  focusLog,
   onToggle,
   onToggleOn,
   onNoteChange,
@@ -86,6 +90,8 @@ export default function TodayView({
   onToggleTask,
   onUpdateTask,
   onDeleteTask,
+  onAddRecurring,
+  onDeleteRecurring,
   aiEnabled,
   aiModel,
   motivation,
@@ -97,12 +103,25 @@ export default function TodayView({
   onPauseFocus,
   onResumeFocus,
   onStopFocus,
+  onFsChange,
 }) {
   const key = todayKey()
   const now = new Date()
   const due = habitsForDate(habits, now)
   const doneCount = due.filter((h) => isDone(h, completions, key)).length
   const pending = due.length - doneCount
+
+  // Confetti when all habits are just completed
+  const [confetti, setConfetti] = useState(false)
+  const prevDoneRef = useRef(doneCount)
+  useEffect(() => {
+    if (due.length > 0 && doneCount === due.length && prevDoneRef.current < due.length) {
+      setConfetti(true)
+      const t = setTimeout(() => setConfetti(false), 4000)
+      return () => clearTimeout(t)
+    }
+    prevDoneRef.current = doneCount
+  }, [doneCount, due.length])
   const todayTasksList = tasks[key] || []
   const doneTasksCount = todayTasksList.filter((t) => t.done).length
   const totalTasksCount = todayTasksList.length
@@ -135,6 +154,7 @@ export default function TodayView({
 
   return (
     <div className="space-y-6">
+      <Confetti active={confetti} />
       {/* yesterday's misses — demand a reason (full-width banner at top) */}
       {yMissed.length > 0 && !missesHidden && (
         <section className="rounded-3xl border-2 border-neutral-900 p-6 dark:border-white dark:bg-[#111]">
@@ -198,7 +218,7 @@ export default function TodayView({
               onClick={() => hideMisses()}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 py-2.5 text-sm font-bold text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500"
             >
-              Unlock &amp; Hide
+              Unlock & Hide
             </button>
           )}
         </section>
@@ -258,10 +278,13 @@ export default function TodayView({
             tasks={tasks}
             goals={goals}
             habits={habits}
+            recurringTasks={recurringTasks || []}
             onAddTask={onAddTask}
             onToggleTask={onToggleTask}
             onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask}
+            onAddRecurring={onAddRecurring}
+            onDeleteRecurring={onDeleteRecurring}
           />
 
           {/* Daily journal + mood */}
@@ -312,10 +335,12 @@ export default function TodayView({
             focus={focus}
             goals={goals}
             totalToday={focusMinutesToday}
+            todaySessions={(focusLog || []).filter((s) => s.date === key)}
             onStart={onStartFocus}
             onPause={onPauseFocus}
             onResume={onResumeFocus}
             onStop={onStopFocus}
+            onFsChange={onFsChange}
           />
 
           {/* AI Coach */}
@@ -330,6 +355,8 @@ export default function TodayView({
             onSave={onSaveMotivation}
             onOpenCoach={onOpenCoach}
           />
+
+          <StreakLeaderboard habits={habits} completions={completions} />
 
           {/* Quote of the day */}
           <section className="rounded-3xl border border-neutral-100 bg-neutral-50/50 p-6 text-center dark:border-neutral-800/40 dark:bg-neutral-900/10">
@@ -379,13 +406,14 @@ function MoodPicker({ value, onChange }) {
   )
 }
 
-function TodayTasks({ dayKey, tasks, goals, habits, onAddTask, onToggleTask, onUpdateTask, onDeleteTask }) {
+function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onAddRecurring, onDeleteRecurring }) {
   const [text, setText] = useState('')
   const [priority, setPriority] = useState('medium')
   const [linkValue, setLinkValue] = useState('')
   const [taskTime, setTaskTime] = useState('')
   const [taskDuration, setTaskDuration] = useState(1)
   const [view, setView] = useState('list') // 'list' | 'schedule'
+  const [showRecurring, setShowRecurring] = useState(false)
   const list = tasks[dayKey] || []
   const doneCount = list.filter((t) => t.done).length
 
@@ -463,7 +491,7 @@ function TodayTasks({ dayKey, tasks, goals, habits, onAddTask, onToggleTask, onU
         {sorted.map((t) => {
           const taskLink = encodeLink(t.goalId, t.habitId)
           return (
-            <div key={t.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 border-b border-neutral-55/50 pb-2 last:border-b-0 last:pb-0 dark:border-neutral-900/50">
+            <div key={t.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 border-b border-neutral-100 pb-2 last:border-b-0 last:pb-0 dark:border-neutral-900/50">
               <div className="flex flex-1 items-center gap-2 min-w-0">
                 <PriorityDot priority={t.priority} onClick={() => onUpdateTask(dayKey, t.id, { priority: nextPriority(t.priority || 'medium') })} />
                 <button
@@ -603,9 +631,67 @@ function TodayTasks({ dayKey, tasks, goals, habits, onAddTask, onToggleTask, onU
       </div>
       <p className="mt-2.5 text-xs font-medium text-neutral-400 dark:text-neutral-500">
         Tip: Switch to <span className="font-bold">Schedule</span> to view or drag tasks directly onto a daily timeline grid.
+        {' '}
+        <button onClick={() => setShowRecurring((v) => !v)} className="font-bold underline-offset-2 hover:underline">
+          {recurringTasks.length > 0 ? `${recurringTasks.length} recurring` : 'Add recurring tasks'}
+        </button>
       </p>
+      {showRecurring && (
+        <div className="mt-4 rounded-2xl border border-neutral-100 p-4 dark:border-neutral-900/60">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">Recurring tasks</p>
+          {recurringTasks.length > 0 && (
+            <div className="mb-3 space-y-1.5">
+              {recurringTasks.map((rt) => (
+                <div key={rt.id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">{rt.title}</span>
+                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold uppercase text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">{rt.repeat}</span>
+                  <button onClick={() => onDeleteRecurring(rt.id)} className="text-neutral-300 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300">
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <RecurringTaskForm goals={goals} onAdd={(rt) => { onAddRecurring(rt); onAddTask(dayKey, rt.title, rt.goalId, rt.priority) }} />
+        </div>
+      )}
         </>
       )}
     </section>
+  )
+}
+
+function RecurringTaskForm({ goals, onAdd }) {
+  const [title, setTitle] = useState('')
+  const [repeat, setRepeat] = useState('daily')
+
+  function submit() {
+    if (!title.trim()) return
+    onAdd({ id: Math.random().toString(36).slice(2), title: title.trim(), repeat, goalId: null, priority: 'medium' })
+    setTitle('')
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder="New recurring task…"
+        className="min-w-[140px] flex-1 rounded-xl border border-neutral-200 bg-transparent px-3 py-1.5 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
+      />
+      <select
+        value={repeat}
+        onChange={(e) => setRepeat(e.target.value)}
+        className="rounded-xl border border-neutral-200 bg-transparent px-3 py-1.5 text-xs font-bold text-neutral-700 outline-none dark:border-neutral-800 dark:bg-transparent dark:text-neutral-300"
+      >
+        <option value="daily">Daily</option>
+        <option value="weekdays">Weekdays</option>
+        <option value="weekly">Weekly</option>
+      </select>
+      <button onClick={submit} className="rounded-xl bg-neutral-900 px-3 py-1.5 text-xs font-bold text-white dark:bg-white dark:text-neutral-900">
+        Add
+      </button>
+    </div>
   )
 }

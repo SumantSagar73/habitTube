@@ -3,23 +3,23 @@ import { getUserId, pullState, pushState } from './sync'
 
 const UPDATED_KEY = 'habittube-updated-at'
 
-// Offline-first sync: on mount, pull the cloud copy and adopt it if it's newer
-// than the local one. On every change, save locally (done in useStore) and
-// debounce-push to the server. Document-level last-write-wins by timestamp.
-// status: 'offline' | 'syncing' | 'synced'
-export default function useSync(data, setData) {
+export default function useSync(data, setData, userId) {
   const [status, setStatus] = useState('offline')
-  const userId = useRef(getUserId()).current
+  const resolvedId = userId || getUserId()
+  const userIdRef = useRef(resolvedId)
   const lastJson = useRef(null)
   const pulled = useRef(false)
 
-  // pull once on mount
+  // pull once on mount and whenever userId changes (e.g. after login)
   useEffect(() => {
+    userIdRef.current = resolvedId
+    pulled.current = false
+    lastJson.current = null
     let cancelled = false
     ;(async () => {
       setStatus('syncing')
       try {
-        const remote = await pullState(userId)
+        const remote = await pullState(resolvedId)
         if (!cancelled && remote && remote.state) {
           const localUpdated = Number(localStorage.getItem(UPDATED_KEY) || 0)
           if ((remote.updatedAt || 0) > localUpdated) {
@@ -39,9 +39,9 @@ export default function useSync(data, setData) {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [resolvedId])
 
-  // push on change (debounced), best-effort
+  // push on change (debounced 1.2s), best-effort
   useEffect(() => {
     if (!pulled.current) return
     const json = JSON.stringify(data)
@@ -52,14 +52,14 @@ export default function useSync(data, setData) {
       localStorage.setItem(UPDATED_KEY, String(updatedAt))
       setStatus('syncing')
       try {
-        await pushState(userId, data, updatedAt)
+        await pushState(userIdRef.current, data, updatedAt)
         setStatus('synced')
       } catch {
         setStatus('offline')
       }
     }, 1200)
     return () => clearTimeout(t)
-  }, [data, userId])
+  }, [data])
 
   return status
 }
