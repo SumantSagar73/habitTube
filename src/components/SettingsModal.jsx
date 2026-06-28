@@ -9,11 +9,13 @@ export default function SettingsModal({
   aiModel,
   remindersEnabled,
   soundEnabled,
+  theme,
   data,
   onToggleAi,
   onSetModel,
   onToggleReminders,
   onToggleSound,
+  onSetTheme,
   onRestore,
   onClose,
 }) {
@@ -68,7 +70,7 @@ export default function SettingsModal({
       focusLog: Array.isArray(parsed.focusLog) ? parsed.focusLog.filter(f => f && typeof f === 'object') : [],
       remindersEnabled: typeof parsed.remindersEnabled === 'boolean' ? parsed.remindersEnabled : false,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
-      theme: parsed.theme === 'light' || parsed.theme === 'dark' ? parsed.theme : 'dark',
+      theme: ['light', 'dark', 'auto'].includes(parsed.theme) ? parsed.theme : 'dark',
     }
   }
 
@@ -109,7 +111,7 @@ export default function SettingsModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="animate-fade-up w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]">
+      <div className="animate-fade-up w-full max-w-md overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]" style={{ maxHeight: '90dvh' }}>
         <div className="mb-6 flex items-start justify-between">
           <h2 className="text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Settings</h2>
           <button
@@ -209,6 +211,37 @@ export default function SettingsModal({
             Reminders fire while HabitTube is open in a tab.
           </p>
         )}
+
+        {/* theme */}
+        <div className="mt-4">
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
+            Appearance
+          </label>
+          <div className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
+            {[
+              ['light', <><svg className="inline h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Light</>],
+              ['dark', <><svg className="inline h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark</>],
+              ['auto', <><svg className="inline h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Auto</>],
+            ].map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => onSetTheme(val)}
+                className={`flex flex-1 items-center justify-center gap-0.5 rounded-full py-2 text-xs font-bold transition ${
+                  theme === val
+                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                    : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {theme === 'auto' && (
+            <p className="mt-1.5 text-xs font-medium text-neutral-400 dark:text-neutral-500">
+              Follows your OS dark/light mode preference.
+            </p>
+          )}
+        </div>
 
         {/* synchronization settings */}
         <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">

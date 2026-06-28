@@ -31,7 +31,49 @@ import { decodeLink, encodeLink } from './TodayView'
 
 const CHILD_LEVEL = { year: 'quarter', quarter: 'month', month: 'week' }
 
-function PeriodCard({ label, sub, pct, active, onClick }) {
+function periodElapsed(level, key) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (level === 'year') {
+    const y = Number(key)
+    const start = new Date(y, 0, 1)
+    const end = new Date(y + 1, 0, 1)
+    const total = (end - start) / 86400000
+    return Math.min(1, Math.max(0, (today - start) / 86400000 / total))
+  }
+  if (level === 'quarter') {
+    const [y, q] = key.split('-Q').map(Number)
+    const sm = (q - 1) * 3
+    const start = new Date(y, sm, 1)
+    const end = new Date(y, sm + 3, 1)
+    const total = (end - start) / 86400000
+    return Math.min(1, Math.max(0, (today - start) / 86400000 / total))
+  }
+  if (level === 'month') {
+    const [y, m] = key.split('-').map(Number)
+    const start = new Date(y, m - 1, 1)
+    const end = new Date(y, m, 1)
+    const total = (end - start) / 86400000
+    return Math.min(1, Math.max(0, (today - start) / 86400000 / total))
+  }
+  if (level === 'week') {
+    const mon = isoWeekStart(key)
+    const start = new Date(mon); start.setHours(0, 0, 0, 0)
+    return Math.min(1, Math.max(0, (today - start) / 86400000 / 7))
+  }
+  return 0
+}
+
+function getHealth(level, key, pct) {
+  const elapsed = periodElapsed(level, key)
+  if (elapsed < 0.08 || pct == null) return null
+  const expected = elapsed * 100
+  if (pct >= expected - 10) return 'good'
+  if (pct >= expected - 30) return 'warn'
+  return 'risk'
+}
+
+function PeriodCard({ label, sub, pct, health, active, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -41,13 +83,56 @@ function PeriodCard({ label, sub, pct, active, onClick }) {
     >
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-bold text-neutral-900 dark:text-white">{label}</span>
-        <span className="text-sm font-extrabold tabular-nums text-neutral-900 dark:text-white">{pct == null ? '—' : `${pct}%`}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          {health && (
+            <span
+              className={`h-2 w-2 rounded-full ${health === 'good' ? 'bg-emerald-500' : health === 'warn' ? 'bg-amber-400' : 'bg-red-400'}`}
+              title={health === 'good' ? 'On track' : health === 'warn' ? 'Slightly behind' : 'At risk'}
+            />
+          )}
+          <span className="text-sm font-extrabold tabular-nums text-neutral-900 dark:text-white">{pct == null ? '—' : `${pct}%`}</span>
+        </div>
       </div>
       {sub && <p className="mt-0.5 text-xs font-medium text-neutral-400 dark:text-neutral-500">{sub}</p>}
       <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
         <div className="h-full rounded-full bg-neutral-900 transition-all duration-500 dark:bg-white" style={{ width: `${pct || 0}%` }} />
       </div>
     </button>
+  )
+}
+
+function CascadeRibbon({ crumbs, ctx, onJump }) {
+  return (
+    <div className="flex flex-wrap items-center gap-0.5">
+      {crumbs.map((c, i) => {
+        const pct = periodPercent(c.lvl, c.key, ctx) ?? 0
+        const isActive = i === crumbs.length - 1
+        return (
+          <div key={c.lvl} className="flex items-center">
+            {i > 0 && <span className="mx-0.5 text-xs text-neutral-300 dark:text-neutral-700">›</span>}
+            <button
+              onClick={() => onJump(c.lvl)}
+              className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                isActive
+                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                  : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white'
+              }`}
+            >
+              <span>{c.label}</span>
+              <span className="flex items-center gap-1">
+                <span className={`relative inline-block h-1 w-10 overflow-hidden rounded-full ${isActive ? 'bg-white/30 dark:bg-neutral-900/30' : 'bg-neutral-200 dark:bg-neutral-700'}`}>
+                  <span
+                    className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isActive ? 'bg-white dark:bg-neutral-900' : 'bg-neutral-900 dark:bg-white'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </span>
+                <span className="tabular-nums">{pct}%</span>
+              </span>
+            </button>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -195,36 +280,27 @@ export default function PlanView({
     })
   }
 
-  const crumbs = [{ lvl: 'year', label: yearKey }]
-  if (quarter) crumbs.push({ lvl: 'quarter', label: periodShort('quarter', quarter) })
-  if (month) crumbs.push({ lvl: 'month', label: periodShort('month', month) })
-  if (week) crumbs.push({ lvl: 'week', label: periodLabel('week', week) })
+  const crumbs = [{ lvl: 'year', label: yearKey, key: yearKey }]
+  if (quarter) crumbs.push({ lvl: 'quarter', label: periodShort('quarter', quarter), key: quarter })
+  if (month) crumbs.push({ lvl: 'month', label: periodShort('month', month), key: month })
+  if (week) crumbs.push({ lvl: 'week', label: periodLabel('week', week), key: week })
 
   let childCards = null
   if (level === 'year') {
-    childCards = quartersOfYear(yearKey).map((k) => ({
-      k,
-      label: periodShort('quarter', k),
-      sub: monthsOfQuarter(k).map((m) => periodShort('month', m)).join(' · '),
-      pct: periodPercent('quarter', k, ctx),
-      onClick: () => setQuarter(k),
-    }))
+    childCards = quartersOfYear(yearKey).map((k) => {
+      const pct = periodPercent('quarter', k, ctx)
+      return { k, label: periodShort('quarter', k), sub: monthsOfQuarter(k).map((m) => periodShort('month', m)).join(' · '), pct, health: getHealth('quarter', k, pct), onClick: () => setQuarter(k) }
+    })
   } else if (level === 'quarter') {
-    childCards = monthsOfQuarter(quarter).map((k) => ({
-      k,
-      label: periodLabel('month', k),
-      sub: `${weeksOfMonth(k).length} weeks`,
-      pct: periodPercent('month', k, ctx),
-      onClick: () => setMonth(k),
-    }))
+    childCards = monthsOfQuarter(quarter).map((k) => {
+      const pct = periodPercent('month', k, ctx)
+      return { k, label: periodLabel('month', k), sub: `${weeksOfMonth(k).length} weeks`, pct, health: getHealth('month', k, pct), onClick: () => setMonth(k) }
+    })
   } else if (level === 'month') {
-    childCards = weeksOfMonth(month).map((k) => ({
-      k,
-      label: periodLabel('week', k),
-      sub: 'week',
-      pct: periodPercent('week', k, ctx),
-      onClick: () => setWeek(k),
-    }))
+    childCards = weeksOfMonth(month).map((k) => {
+      const pct = periodPercent('week', k, ctx)
+      return { k, label: periodLabel('week', k), sub: 'week', pct, health: getHealth('week', k, pct), onClick: () => setWeek(k) }
+    })
   }
 
   const prevWeek = periodKeys(addDays(new Date(), -7)).week
@@ -304,25 +380,13 @@ export default function PlanView({
         />
       ) : (
         <>
-          {/* breadcrumb + period switch */}
+          {/* cascade ribbon + period nav */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="mr-1 flex items-center gap-1">
+            <div className="flex items-center gap-1">
               <button onClick={() => navigatePeriod(-1)} title={`Previous ${LEVEL_LABEL[level].toLowerCase()}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">‹</button>
               <button onClick={() => navigatePeriod(1)} title={`Next ${LEVEL_LABEL[level].toLowerCase()}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">›</button>
             </div>
-            {crumbs.map((c, i) => (
-              <div key={c.lvl} className="flex items-center gap-2">
-                {i > 0 && <span className="text-neutral-300 dark:text-neutral-700">▸</span>}
-                <button
-                  onClick={() => jump(c.lvl)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-bold transition ${
-                    i === crumbs.length - 1 ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-                  }`}
-                >
-                  {c.label}
-                </button>
-              </div>
-            ))}
+            <CascadeRibbon crumbs={crumbs} ctx={ctx} onJump={jump} />
           </div>
 
           {/* Two-column layout: left = sidebar (progress + quarters), right = goals + tasks */}
@@ -480,7 +544,7 @@ export default function PlanView({
                   </h3>
                   <div className="grid gap-2">
                     {childCards.map((c) => (
-                      <PeriodCard key={c.k} label={c.label} sub={c.sub} pct={c.pct} active={false} onClick={c.onClick} />
+                      <PeriodCard key={c.k} label={c.label} sub={c.sub} pct={c.pct} health={c.health} active={false} onClick={c.onClick} />
                     ))}
                   </div>
                 </section>

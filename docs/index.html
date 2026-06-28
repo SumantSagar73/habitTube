@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HabitTube — User Manual</title>
+  <meta name="description" content="Complete user guide for HabitTube — habit tracking, goal cascades, focus sessions, and the AI coach." />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-subtle: #f5f5f5;
+      --bg-card: #fafafa;
+      --border: #e5e5e5;
+      --border-strong: #d4d4d4;
+      --text: #171717;
+      --text-2: #404040;
+      --text-3: #737373;
+      --text-4: #a3a3a3;
+      --accent: #171717;
+      --accent-fg: #ffffff;
+      --sidebar-w: 256px;
+      --tip-bg: #f0fdf4; --tip-border: #86efac; --tip-text: #166534;
+      --note-bg: #eff6ff; --note-border: #93c5fd; --note-text: #1e40af;
+      --warn-bg: #fffbeb; --warn-border: #fcd34d; --warn-text: #92400e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --bg-subtle: #111111;
+        --bg-card: #161616;
+        --border: #262626;
+        --border-strong: #404040;
+        --text: #fafafa;
+        --text-2: #d4d4d4;
+        --text-3: #a3a3a3;
+        --text-4: #525252;
+        --accent: #fafafa;
+        --accent-fg: #0a0a0a;
+        --tip-bg: #052e16; --tip-border: #166534; --tip-text: #86efac;
+        --note-bg: #1e3a5f; --note-border: #1d4ed8; --note-text: #93c5fd;
+        --warn-bg: #451a03; --warn-border: #92400e; --warn-text: #fcd34d;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ─── Sidebar ─────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      padding: 32px 0;
+      flex-shrink: 0;
+    }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 24px 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    .sidebar-brand-icon {
+      width: 28px; height: 28px; background: var(--text);
+      border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .sidebar-brand-icon svg { width: 16px; height: 16px; }
+    .sidebar-brand-text { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .sidebar-brand-text span { color: var(--text-4); }
+    .sidebar-group-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-4);
+      padding: 0 24px; margin: 20px 0 6px;
+    }
+    .sidebar-link {
+      display: block; padding: 5px 24px;
+      font-size: 13.5px; font-weight: 500; color: var(--text-3);
+      text-decoration: none; transition: color 0.15s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sidebar-link:hover { color: var(--text); }
+    .sidebar-link.active { color: var(--text); font-weight: 600; }
+    .sidebar-sub { padding-left: 36px; }
+
+    /* ─── Main content ────────────────────────────────────────── */
+    #content {
+      flex: 1; min-width: 0;
+      padding: 64px 48px 120px;
+      max-width: 860px;
+    }
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      #content { padding: 32px 20px 80px; }
+    }
+
+    /* ─── Typography ──────────────────────────────────────────── */
+    h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; color: var(--text); margin-bottom: 12px; }
+    h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); margin: 56px 0 12px; padding-top: 56px; border-top: 1px solid var(--border); }
+    h2:first-of-type { border-top: none; margin-top: 40px; padding-top: 0; }
+    h3 { font-size: 17px; font-weight: 700; color: var(--text); margin: 32px 0 8px; }
+    h4 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin: 24px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 16px; font-size: 15px; }
+    p:last-child { margin-bottom: 0; }
+    a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: var(--text-3); }
+    strong { color: var(--text); font-weight: 600; }
+    code {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 12.5px; background: var(--bg-subtle);
+      border: 1px solid var(--border); border-radius: 5px;
+      padding: 1px 6px; color: var(--text);
+    }
+    pre {
+      background: var(--bg-subtle); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px; overflow-x: auto;
+      margin: 20px 0;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: 13px; }
+
+    /* ─── Lead / intro text ───────────────────────────────────── */
+    .lead { font-size: 17px; color: var(--text-3); line-height: 1.7; margin-bottom: 40px; }
+    .page-meta {
+      font-size: 12px; font-weight: 500; color: var(--text-4);
+      margin-bottom: 40px; letter-spacing: 0.04em;
+    }
+
+    /* ─── Callout boxes ───────────────────────────────────────── */
+    .callout {
+      border-radius: 12px; padding: 14px 18px; margin: 24px 0;
+      border-left: 3px solid; font-size: 14px; line-height: 1.6;
+    }
+    .callout-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+    .callout.tip { background: var(--tip-bg); border-color: var(--tip-border); color: var(--tip-text); }
+    .callout.note { background: var(--note-bg); border-color: var(--note-border); color: var(--note-text); }
+    .callout.warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+
+    /* ─── Lists ───────────────────────────────────────────────── */
+    ul, ol { padding-left: 24px; margin-bottom: 16px; }
+    li { color: var(--text-2); font-size: 15px; margin-bottom: 5px; line-height: 1.6; }
+    li strong { color: var(--text); }
+    ul li::marker { color: var(--text-4); }
+
+    /* ─── Tables ──────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin: 20px 0; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      text-align: left; padding: 12px 16px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-4); background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-subtle); }
+    td code { font-size: 12px; }
+
+    /* ─── Step cards ──────────────────────────────────────────── */
+    .steps { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .step {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .step-num {
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
+      background: var(--accent); color: var(--accent-fg);
+      font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; font-size: 14px; margin-bottom: 4px; color: var(--text); }
+    .step-body span { font-size: 13.5px; color: var(--text-3); }
+
+    /* ─── Feature grid ────────────────────────────────────────── */
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 20px 0; }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px;
+    }
+    .feature-card-icon { margin-bottom: 10px; color: var(--text-3); }
+    .feature-card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .feature-card-desc { font-size: 13px; color: var(--text-3); line-height: 1.5; }
+
+    /* ─── Keyboard badge ──────────────────────────────────────── */
+    kbd {
+      display: inline-block; background: var(--bg-subtle);
+      border: 1px solid var(--border-strong); border-bottom-width: 2px;
+      border-radius: 5px; padding: 2px 8px; font-size: 12px;
+      font-family: inherit; font-weight: 600; color: var(--text);
+    }
+
+    /* ─── Section badge ───────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 3px 10px;
+      border-radius: 20px; border: 1px solid var(--border);
+      color: var(--text-3); margin-bottom: 12px;
+    }
+
+    /* ─── Divider ─────────────────────────────────────────────── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    /* ─── Mobile TOC toggle ───────────────────────────────────── */
+    #toc-toggle {
+      display: none; position: fixed; bottom: 24px; right: 24px; z-index: 100;
+      background: var(--accent); color: var(--accent-fg);
+      border: none; border-radius: 50%; width: 48px; height: 48px;
+      font-size: 20px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    @media (max-width: 768px) {
+      #toc-toggle { display: flex; align-items: center; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Sidebar ──────────────────────────────────────────────────── -->
+<nav id="sidebar">
+  <a href="#top" class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <svg viewBox="0 0 24 24" fill="white"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="#171717"/></svg>
+    </div>
+    <span class="sidebar-brand-text">HabitTube<span>.</span></span>
+  </a>
+
+  <div class="sidebar-group-label">Getting Started</div>
+  <a href="#introduction" class="sidebar-link">Introduction</a>
+  <a href="#philosophy" class="sidebar-link">Core philosophy</a>
+  <a href="#quickstart" class="sidebar-link">Quick start</a>
+
+  <div class="sidebar-group-label">Views</div>
+  <a href="#today" class="sidebar-link">Today</a>
+  <a href="#today-habits" class="sidebar-link sidebar-sub">Habit checklist</a>
+  <a href="#today-focus" class="sidebar-link sidebar-sub">Focus timer</a>
+  <a href="#today-tasks" class="sidebar-link sidebar-sub">Daily tasks</a>
+  <a href="#today-mood" class="sidebar-link sidebar-sub">Mood &amp; journal</a>
+  <a href="#plan" class="sidebar-link">Plan</a>
+  <a href="#plan-cascade" class="sidebar-link sidebar-sub">Cascade mode</a>
+  <a href="#plan-goals" class="sidebar-link sidebar-sub">Goal types</a>
+  <a href="#plan-weekboard" class="sidebar-link sidebar-sub">Week task board</a>
+  <a href="#plan-reviews" class="sidebar-link sidebar-sub">Weekly reviews</a>
+  <a href="#habits" class="sidebar-link">Habits</a>
+  <a href="#habits-create" class="sidebar-link sidebar-sub">Creating habits</a>
+  <a href="#habits-recurring" class="sidebar-link sidebar-sub">Recurring tasks</a>
+  <a href="#habits-library" class="sidebar-link sidebar-sub">Habit library</a>
+  <a href="#insights" class="sidebar-link">Insights</a>
+  <a href="#insights-overview" class="sidebar-link sidebar-sub">Overview</a>
+  <a href="#insights-habits" class="sidebar-link sidebar-sub">Habits analytics</a>
+  <a href="#insights-goals" class="sidebar-link sidebar-sub">Goal progress</a>
+  <a href="#insights-focus" class="sidebar-link sidebar-sub">Focus history</a>
+  <a href="#calendar" class="sidebar-link">Calendar</a>
+
+  <div class="sidebar-group-label">Features</div>
+  <a href="#coach" class="sidebar-link">AI Coach</a>
+  <a href="#settings" class="sidebar-link">Settings &amp; Sync</a>
+  <a href="#shortcuts" class="sidebar-link">Keyboard shortcuts</a>
+
+  <div class="sidebar-group-label">Reference</div>
+  <a href="#ref-cascade" class="sidebar-link">Goal cascade &amp; periods</a>
+  <a href="#ref-streaks" class="sidebar-link">Streak rules</a>
+  <a href="#ref-data" class="sidebar-link">Data &amp; privacy</a>
+</nav>
+
+<!-- ─── Content ──────────────────────────────────────────────────── -->
+<main id="content">
+
+  <!-- HEADER -->
+  <div id="top">
+    <div class="page-meta">HabitTube · User Manual · v1.0</div>
+    <h1>User Manual</h1>
+    <p class="lead">
+      Everything you need to track habits, build cascading goals, run deep-work sessions, and understand your progress — all in one place.
+    </p>
+  </div>
+
+  <!-- ── INTRODUCTION ── -->
+  <h2 id="introduction">Introduction</h2>
+  <p>
+    <strong>HabitTube</strong> is a personal productivity system built around three ideas working together:
+    daily habits that build consistency, goals that cascade from yearly ambitions down to weekly actions,
+    and focused work sessions that give your intentions real time behind them.
+  </p>
+  <p>
+    Unlike most habit trackers that treat habits and goals as separate tools, HabitTube links them —
+    you can attach a habit to a goal, see how your completion rate drives goal progress, and review the
+    full picture from a single Insights dashboard.
+  </p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </div>
+      <div class="feature-card-title">Habits</div>
+      <div class="feature-card-desc">Daily, weekday, or custom-schedule habits with streaks, completion heatmaps, and mood tracking.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <div class="feature-card-title">Goal cascade</div>
+      <div class="feature-card-desc">Year → Quarter → Month → Week goals that roll up automatically. See how small wins build big outcomes.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+      </div>
+      <div class="feature-card-title">Focus timer</div>
+      <div class="feature-card-desc">Pomodoro-style sessions (10 / 25 / 50 / 90 min) linked to goals. Every minute is logged to Insights.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="feature-card-title">AI Coach</div>
+      <div class="feature-card-desc">Chat with an AI that knows your habits and goals. It can propose a full plan — you approve before anything changes.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="feature-card-title">Calendar</div>
+      <div class="feature-card-desc">Monthly overview showing habit completion, mood scores, and tasks for any day at a glance.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <div class="feature-card-title">Insights</div>
+      <div class="feature-card-desc">Year heatmap, best-day analysis, habit correlation, mood overlay, and goal health indicators.</div>
+    </div>
+  </div>
+
+  <!-- ── PHILOSOPHY ── -->
+  <h2 id="philosophy">Core philosophy</h2>
+  <p>
+    HabitTube is built on one premise: <strong>big outcomes are the sum of small daily actions</strong>.
+    The system is designed to make that connection visible and measurable.
+  </p>
+  <h3>The cascade principle</h3>
+  <p>
+    Every goal in HabitTube lives at one of four levels: <strong>Year, Quarter, Month, or Week</strong>.
+    Goals at lower levels link to parents above them. The system automatically rolls up progress —
+    if all your week goals are done, your month goal inches forward; if all months close out,
+    the quarter goal moves.
+  </p>
+  <p>
+    You always see where you are in the chain. A weekly task connects to a week goal, which feeds a month goal,
+    which builds toward a quarter goal, which advances your year ambition.
+  </p>
+  <h3>Offline-first, your data</h3>
+  <p>
+    All data is saved to your browser's <code>localStorage</code> instantly. Supabase sync happens in the
+    background (1.2 s debounce after every change) and uses a last-write-wins strategy — the newer
+    timestamp always wins. If you go offline, you keep working. When you reconnect, changes sync automatically.
+  </p>
+  <div class="callout note">
+    <div class="callout-label">Note</div>
+    Because data is tied to your browser storage, clearing browser data will erase local state. Use
+    <strong>Settings → Backup</strong> regularly to export a JSON snapshot you can restore later.
+  </div>
+
+  <!-- ── QUICK START ── -->
+  <h2 id="quickstart">Quick start</h2>
+  <p>You can be up and running in under five minutes. Here is the recommended first-run path:</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Sign in</strong><span>Open HabitTube. Sign in or create an account — this ties your data to Supabase so it syncs across devices.</span></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Create a habit</strong><span>Click <strong>+ New → Habit</strong>. Give it a name, an emoji, and pick which days it should appear. Start with one habit — don't over-commit on day one.</span></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Set a year goal</strong><span>Click <strong>+ New → Goal</strong> or go to the <strong>Plan</strong> tab. Set a big outcome for the year. Keep it one sentence.</span></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Break it down</strong><span>In Plan, drill into the current quarter and add a quarter goal that feeds your year goal. Then do the same for this month.</span></div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-body"><strong>Check off today</strong><span>Go to <strong>Today</strong> and mark your habit done. Start a focus timer on something that matters. You're in the system.</span></div></div>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-label">Tip</div>
+    Not sure what habits to build? Click <strong>Habits → Library</strong> to browse four starter packs
+    (Morning Routine, Fitness, Learning, Mindfulness) and install any with one click.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="today">Today</h2>
+  <p>
+    The Today view is your daily command center. It shows everything due right now: habits scheduled for
+    today, your focus timer, tasks for today's date, your mood check-in, and a journal entry field.
+  </p>
+
+  <h3 id="today-habits">Habit checklist</h3>
+  <p>
+    Only habits scheduled for today's day of the week appear here. Tap a habit row to mark it done —
+    the checkbox fills and the streak counter increments. Tap again to un-mark it.
+  </p>
+  <p>
+    Habits with a set time show a small clock label. If the time has passed and the habit is undone,
+    it shows an <em>overdue</em> tag.
+  </p>
+  <p>
+    When you complete <strong>every habit due today</strong>, a confetti animation fires automatically.
+    You have earned it.
+  </p>
+  <h4>Streak leaders</h4>
+  <p>
+    The right column shows the top 5 habits sorted by current streak length, with their all-time best
+    streak alongside. This is a quick reminder of what you have built and what is at risk.
+  </p>
+
+  <h3 id="today-focus">Focus timer</h3>
+  <p>
+    The focus timer lives in the Today view. Pick a session duration (<strong>10, 25, 50, or 90 minutes</strong>),
+    optionally type what you are focusing on and link it to a goal, then press <strong>Start session</strong>.
+  </p>
+  <p>
+    Press the <strong>fullscreen icon</strong> (top-right of the timer card) to enter distraction-free mode —
+    a full-screen countdown with nothing else on screen except the HabitTube wordmark and session controls.
+  </p>
+  <p>
+    When a session ends, it is automatically logged to <code>focusLog</code> with the date, duration,
+    goal link, and label. You can see all past sessions in <strong>Insights → Focus</strong>.
+  </p>
+  <div class="callout warn">
+    <div class="callout-label">Important</div>
+    The focus timer state is <em>not</em> persisted to storage — if you refresh the page mid-session,
+    the timer resets. Keep the tab open during a session.
+  </div>
+  <p>Completed sessions appear as small dots in the timer card and the fullscreen view. Each dot represents one session logged today.</p>
+
+  <h3 id="today-tasks">Daily tasks</h3>
+  <p>
+    Daily tasks are to-dos scoped to a specific date. They appear in the Today view for today's date only.
+    You can:
+  </p>
+  <ul>
+    <li>Add a task with a priority (low / medium / high) and an optional goal or habit link.</li>
+    <li>Click a task title to edit it in place. Press Enter or click away to save.</li>
+    <li>Toggle the checkbox to mark done / undone.</li>
+    <li>Use the <strong>→</strong> arrow to move a task to tomorrow.</li>
+    <li>Delete with the <strong>×</strong> button.</li>
+  </ul>
+  <h4>Recurring tasks</h4>
+  <p>
+    Recurring tasks auto-generate on a schedule. Open the <strong>Recurring</strong> panel (collapsible at
+    the bottom of the task list), fill in a title and repeat pattern (daily / weekdays / weekly), and
+    save. From then on, the task appears automatically each applicable day.
+  </p>
+
+  <h3 id="today-mood">Mood &amp; journal</h3>
+  <p>
+    At the bottom of the Today view you can log a mood score (1–5, from Rough to Great) and write a
+    free-form journal entry. Both are stored keyed by date and appear in the Calendar view.
+  </p>
+  <p>
+    Mood data feeds the <strong>Mood &amp; habits</strong> chart in Insights, which shows whether your
+    habit completion rate and mood scores move together over time.
+  </p>
+  <p>
+    If you miss a habit, you can also record a <em>miss note</em> explaining why — useful for spotting
+    patterns in what causes you to fall off track.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="plan">Plan</h2>
+  <p>
+    The Plan tab is where you build and track your goal hierarchy. It has two modes toggled in the
+    top-right: <strong>Cascade</strong> and <strong>Tree</strong>.
+  </p>
+
+  <h3 id="plan-cascade">Cascade mode</h3>
+  <p>
+    Cascade mode is the main planning view. It shows one level of the hierarchy at a time
+    (Year, Quarter, Month, or Week) and lets you drill down.
+  </p>
+  <h4>The cascade ribbon</h4>
+  <p>
+    At the top of the view is a connected ribbon of pill buttons:
+  </p>
+  <pre><code>[2026  ████░ 72%]  ›  [Q2  ████░ 58%]  ›  [Jun  ███░░ 41%]  ›  [W26  ██░░░ 35%]</code></pre>
+  <p>
+    Each pill shows the period label, a mini progress bar, and the completion percentage. The active
+    (deepest) level is highlighted. Click any pill to jump back up to that level. Use the
+    <strong>‹ ›</strong> arrows on the left to step backward and forward through time
+    (e.g. previous quarter, next month).
+  </p>
+  <h4>Left sidebar</h4>
+  <p>The sidebar shows:</p>
+  <ul>
+    <li><strong>Period progress card</strong> — current period label, overall % as a large number, and a progress bar. At year level, a text area lets you record your north-star vision for the year.</li>
+    <li><strong>Child period cards</strong> — Q1–Q4 when at year level, months at quarter level, weeks at month level. Each card shows a health indicator dot (green = on track, amber = slightly behind, red = at risk) based on how far through the period you are vs how much is completed.</li>
+    <li><strong>Carry-forward</strong> — incomplete goals from the previous period appear here with a one-click button to bring them into the current period.</li>
+  </ul>
+  <h4>Right column — goals</h4>
+  <p>
+    The right side shows goals for the current level with a <strong>Quick Add</strong> input (type and press Enter) and an <strong>+ Advanced Goal</strong> button that opens the full goal editor.
+  </p>
+
+  <h3 id="plan-goals">Goal types</h3>
+  <p>Every goal has a <strong>type</strong> that determines how its progress is calculated:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>Progress logic</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Checklist</strong></td>
+          <td>Done / not done. If it has sub-goals or linked tasks, rolls up from their average. Otherwise a manual "Mark done" button appears.</td>
+          <td>Binary outcome — either you shipped the feature or you didn't.</td>
+        </tr>
+        <tr>
+          <td><strong>Numeric</strong></td>
+          <td><code>current / target × 100</code>. Use the − / + buttons on the card to increment, or type a value directly.</td>
+          <td>Measurable quantities — km run, books read, revenue.</td>
+        </tr>
+        <tr>
+          <td><strong>Habit</strong></td>
+          <td>Counts completions of a linked habit up to a target number.</td>
+          <td>"Complete this habit 20 times this month."</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Any goal type can also be <strong>manually overridden</strong> — click the pencil icon on a goal card
+    and type a percentage directly. A "manual · reset to auto" button appears to remove the override.
+  </p>
+  <p>
+    Goals can have a <strong>parent goal</strong> at the level above. When a goal has sub-goals, its
+    progress is the average of their percentages rather than its own direct value.
+  </p>
+
+  <h3 id="plan-weekboard">Week task board</h3>
+  <p>
+    When you drill down to a <strong>Week</strong>, a 7-day task board appears below the goal cards.
+    Each day is a card with its tasks listed. You can:
+  </p>
+  <ul>
+    <li>Add tasks per day with priority and goal/habit link.</li>
+    <li>Click a task title to rename it in place.</li>
+    <li>Move tasks to the next day with the arrow button.</li>
+    <li>Link tasks to any goal in the current week's ancestor chain.</li>
+  </ul>
+  <p>Today's column has a bold border so it stands out from the rest of the week.</p>
+
+  <h3 id="plan-reviews">Weekly reviews &amp; carry-forward</h3>
+  <p>
+    If last week had activity and you haven't reviewed it yet, a <strong>Your weekly review is ready</strong>
+    banner appears at the top of the Plan tab. Click it to open the review modal.
+  </p>
+  <p>The review modal lets you:</p>
+  <ul>
+    <li>Rate each goal's effort (1–5 stars).</li>
+    <li>Write a reflection note.</li>
+    <li>Carry incomplete tasks forward to the current week with one click.</li>
+    <li>Mark the review done to clear the nudge.</li>
+  </ul>
+  <p>
+    The AI Coach (if enabled) can generate a written reflection based on your week's data — click
+    <strong>Generate with AI</strong> inside the review modal.
+  </p>
+  <div class="callout tip">
+    <div class="callout-label">Tip</div>
+    Do your weekly review on Sunday evening or Monday morning. It takes about 5 minutes and
+    dramatically improves the quality of your next week's planning.
+  </div>
+
+  <h4>Tree mode</h4>
+  <p>
+    Switch to <strong>Tree</strong> mode (top-right toggle) to see all goals across all years and levels
+    in a collapsible tree. Useful for auditing the full structure, editing goal relationships,
+    or getting a bird's-eye view without time navigation.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="habits">Habits</h2>
+  <p>
+    The Habits tab (also called Manage) shows all your habits. Switch between <strong>List</strong> view
+    (drag to reorder, click to view heatmap) and <strong>Grid</strong> view (tap cells to retroactively
+    complete habits across days).
+  </p>
+
+  <h3 id="habits-create">Creating a habit</h3>
+  <p>Click <strong>+ New → Habit</strong> or the <strong>+ Add habit</strong> button in the Habits tab. The habit editor lets you set:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Field</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Name</strong></td><td>The habit's display name. Keep it short and action-oriented ("Read 20 min", "Walk").</td></tr>
+        <tr><td><strong>Emoji</strong></td><td>Visual identifier shown in the checklist and calendar.</td></tr>
+        <tr><td><strong>Days</strong></td><td>Which days of the week the habit appears. Default: every day. Common: Mon–Fri for work habits.</td></tr>
+        <tr><td><strong>Time</strong></td><td>Optional reminder time. Shows an overdue label if past this time and habit is undone.</td></tr>
+        <tr><td><strong>Goal link</strong></td><td>Link this habit to a goal so completions count toward goal progress.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    To edit a habit, click its name in the Habits tab. To delete, open the editor and click
+    <strong>Delete habit</strong> at the bottom.
+  </p>
+  <h4>Reordering</h4>
+  <p>
+    In List view, grab the grip handle (⠿) on the left of any habit row and drag it to a new position.
+    The order is saved immediately.
+  </p>
+  <h4>Habit detail &amp; heatmap</h4>
+  <p>
+    Click a habit's name in List view to open the detail panel showing:
+    current streak, best streak, 30-day rate, and a personal full-year heatmap.
+    Each square in the heatmap is one day — darker means the habit was done, empty means it was missed or not scheduled.
+  </p>
+
+  <h3 id="habits-recurring">Recurring tasks</h3>
+  <p>
+    Recurring tasks are templates that generate a daily task automatically. They live separately from
+    habits — a recurring task is a to-do that repeats, not a behavior you are building a streak for.
+  </p>
+  <p>Good use cases: "Send weekly status update" (weekly), "Review inbox" (weekdays), "Water plants" (weekly).</p>
+  <p>To create one, scroll to the bottom of the Today task list and expand the <strong>Recurring</strong> section. Fill in a title and repeat pattern and press Add.</p>
+
+  <h3 id="habits-library">Habit library (templates)</h3>
+  <p>
+    Click the <strong>Library</strong> button in the Habits tab toolbar to browse four pre-built habit packs:
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pack</th><th>Habits included</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Morning Routine</strong></td><td>Wake up early, make bed, meditate, exercise, read, cold shower</td></tr>
+        <tr><td><strong>Fitness</strong></td><td>Workout, walk 10,000 steps, stretch, track calories, drink 2L water</td></tr>
+        <tr><td><strong>Learning</strong></td><td>Read 30 min, study/practice, journal, no phone first hour, podcast</td></tr>
+        <tr><td><strong>Mindfulness</strong></td><td>Morning meditation, gratitude journal, screen-free evening, deep breathing, walk in nature</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Installing a pack skips any habits you already have with the same name (case-insensitive). A pack
+    shows "✓ Installed" once all its habits are present. You can install packs partially — just click
+    individual habits from the pack list.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="insights">Insights</h2>
+  <p>
+    The Insights tab is a read-only analytics dashboard split into four sub-tabs:
+    <strong>Overview, Habits, Goals,</strong> and <strong>Focus</strong>.
+  </p>
+
+  <h3 id="insights-overview">Overview</h3>
+  <p>The Overview sub-tab has two sections:</p>
+  <h4>Scoreboard</h4>
+  <p>
+    Lists all active habits for the current period with their completion rates as horizontal bars.
+    Habits are sorted by completion rate descending — your strongest habits are at the top.
+    A bar reaching 100% means you completed that habit every scheduled day this period.
+  </p>
+  <h4>Year at a glance (heatmap)</h4>
+  <p>
+    A full-year contribution graph. Each square is one day. The shade represents the fraction of
+    scheduled habits completed that day — darker = higher completion rate. Hover any square to see the
+    exact date and rate. Squares before your account was created are shown empty.
+  </p>
+  <p>
+    This view makes streaks, regressions, and seasonal patterns immediately visible.
+    A long horizontal run of dark squares is your best motivator.
+  </p>
+
+  <h3 id="insights-habits">Habits analytics</h3>
+  <p>Three analytical widgets appear in the Habits sub-tab:</p>
+  <h4>Best day of the week</h4>
+  <p>
+    A bar chart showing your average habit completion rate per weekday over the last 90 days.
+    If Sunday shows 78% and Wednesday shows 41%, you know your mid-week environment needs attention.
+  </p>
+  <h4>Habit pairs (correlation)</h4>
+  <p>
+    Shows which pairs of habits most often get done together (co-occurrence rate over 60 days,
+    minimum 5 shared scheduled days). A high pair rate like "Meditate + Read: 89%" means doing one
+    strongly predicts doing the other — they may be part of the same routine.
+  </p>
+  <h4>Mood &amp; habits overlay</h4>
+  <p>
+    A 30-day area chart overlaying habit completion rate (solid line) and mood score (dashed line,
+    scaled to 0–100). Only visible if you have logged at least one mood. Look for days when both
+    lines drop — those are days worth examining in your journal.
+  </p>
+
+  <h3 id="insights-goals">Goal progress</h3>
+  <p>
+    The Goals sub-tab shows cards for every goal in the current Year / Quarter / Month / Week, filterable by level.
+    Each card shows:
+  </p>
+  <ul>
+    <li>Goal type icon, title, level badge, period label, and parent goal reference.</li>
+    <li>Current progress percentage and a colored progress bar.</li>
+    <li>For numeric goals: current value vs target (e.g. "32 / 50 km").</li>
+    <li>An <strong>amber warning badge</strong> if the goal ends within 7 days and is less than 80% complete.</li>
+  </ul>
+
+  <h3 id="insights-focus">Focus history</h3>
+  <p>
+    The Focus sub-tab shows a log of all completed focus sessions, most recent first. Each entry shows the date,
+    duration, session label, and linked goal. Total minutes for each day are summed.
+  </p>
+  <div class="callout note">
+    <div class="callout-label">Note</div>
+    Only <em>completed</em> sessions (timer reached zero or you pressed Stop after at least some time)
+    are logged. Paused sessions that you abandon are not recorded.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="calendar">Calendar</h2>
+  <p>
+    The Calendar tab shows a month grid. Each day cell contains:
+  </p>
+  <ul>
+    <li>A shade fill representing habit completion rate for that day.</li>
+    <li>A mood face emoji if you logged a mood.</li>
+    <li>A count of tasks (done / total).</li>
+  </ul>
+  <p>
+    Click any day to expand it and see the full task list, journal entry, and miss notes for that date.
+    Navigate months with the ‹ › arrows or click the month/year label to jump to today.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="coach">AI Coach</h2>
+  <p>
+    The Coach is a floating chat button (bottom-right of the screen). Clicking it opens a full-screen
+    conversation panel. The AI has read-only access to your habits and goals — it can reference them
+    in its responses.
+  </p>
+  <div class="callout warn">
+    <div class="callout-label">Important</div>
+    AI features require the <strong>dev server</strong> (<code>npm run dev</code>). They do not work in
+    production builds because the Groq API key is injected server-side by the Vite proxy middleware.
+    If you see "Groq key not configured", check that <code>GROQ_API_KEY</code> is set in your
+    <code>.env.local</code> file.
+  </div>
+
+  <h3>Chatting with the coach</h3>
+  <p>
+    Type naturally. Example prompts that work well:
+  </p>
+  <ul>
+    <li><em>"I want to run a marathon in 6 months. Help me build a plan."</em></li>
+    <li><em>"My habit completion is low on Wednesdays. What should I change?"</em></li>
+    <li><em>"Create a Q3 plan for learning Python."</em></li>
+    <li><em>"Review my current goals and tell me if they're realistic."</em></li>
+  </ul>
+
+  <h3>Accepting a coach plan</h3>
+  <p>
+    When the coach proposes new goals or habits, it embeds a JSON plan in its reply. HabitTube strips
+    the JSON out of the displayed message and renders it as a <strong>confirm / reject UI</strong>.
+    You see exactly what will be created before anything changes. Click <strong>Apply plan</strong>
+    to add the goals/habits, or <strong>Reject</strong> to discard them and keep chatting.
+  </p>
+
+  <h3>Changing the AI model</h3>
+  <p>
+    Go to <strong>Settings → AI</strong>. The default model is <code>llama-3.3-70b-versatile</code>.
+    You can switch to a faster or more capable Groq model from the dropdown. Your API key can be
+    tested with the <strong>Test connection</strong> button.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="settings">Settings &amp; Sync</h2>
+  <p>Open Settings via the gear icon in the top-right header.</p>
+
+  <h3>Theme</h3>
+  <p>
+    Three options in the <strong>Appearance</strong> section: <strong>Light, Dark, Auto</strong>.
+    Auto follows your operating system's dark/light preference and updates live if you change it.
+  </p>
+
+  <h3>Sync status</h3>
+  <p>
+    A small dot in the header shows sync state:
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Indicator</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Green dot · <strong>Synced</strong></td><td>Last write was successfully saved to Supabase.</td></tr>
+        <tr><td>Amber pulsing · <strong>Syncing</strong></td><td>A write is in progress (debounce window active).</td></tr>
+        <tr><td>Gray dot · <strong>Offline</strong></td><td>No network or Supabase unreachable. Data is safe in localStorage.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Export to Excel</h3>
+  <p>
+    Click <strong>Export</strong> in the header (or <strong>Settings → Export</strong>). This generates
+    an <code>.xlsx</code> file containing your habits, completions, goals, and focus log as separate sheets.
+    Useful for further analysis in Excel or Google Sheets.
+  </p>
+
+  <h3>Backup &amp; restore</h3>
+  <p>
+    In Settings, <strong>Download backup</strong> saves the full app state as a <code>.json</code> file.
+    <strong>Restore from backup</strong> loads that file and overwrites the current state. Always download
+    a fresh backup before restoring, in case you need to go back.
+  </p>
+  <div class="callout warn">
+    <div class="callout-label">Warning</div>
+    Restoring a backup replaces all current data including habits, goals, completions, and focus history.
+    There is no undo. Download a backup first.
+  </div>
+
+  <h3>Install as app (PWA)</h3>
+  <p>
+    If your browser supports PWA installation, a banner appears at the bottom of the screen offering
+    to install HabitTube as a standalone app. Once installed, it launches without browser chrome and
+    works offline. You can dismiss the banner permanently if you prefer to use it in the browser.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="shortcuts">Keyboard shortcuts</h2>
+  <p>Keyboard shortcuts work anywhere in the app (not while typing in an input field):</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Key</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>T</kbd></td><td>Go to Today tab</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Go to Plan tab</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Go to Habits tab</td></tr>
+        <tr><td><kbd>I</kbd></td><td>Go to Insights tab</td></tr>
+        <tr><td><kbd>C</kbd></td><td>Go to Calendar tab</td></tr>
+        <tr><td><kbd>N</kbd></td><td>Open the + New menu</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Open Coach (chat)</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close any open modal or menu</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Inside the weekly task board, pressing <kbd>Enter</kbd> in the task input submits the task.
+    In the goal quick-add input, <kbd>Enter</kbd> creates the goal instantly.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="ref-cascade">Reference — Goal cascade &amp; period keys</h2>
+  <p>
+    Period keys are the strings HabitTube uses internally to identify time windows.
+    Understanding them helps when reviewing exports or connecting habits to goals.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Level</th><th>Format</th><th>Example</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Year</td><td><code>"YYYY"</code></td><td><code>"2026"</code></td><td>Full calendar year</td></tr>
+        <tr><td>Quarter</td><td><code>"YYYY-QN"</code></td><td><code>"2026-Q2"</code></td><td>Apr–Jun 2026</td></tr>
+        <tr><td>Month</td><td><code>"YYYY-MM"</code></td><td><code>"2026-06"</code></td><td>June 2026</td></tr>
+        <tr><td>Week</td><td><code>"YYYY-WNN"</code></td><td><code>"2026-W26"</code></td><td>ISO week 26 of 2026 (Mon–Sun)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Weeks follow <strong>ISO 8601</strong> — Monday is the first day of the week. Week 1 is the week
+    containing the first Thursday of the year. A week belongs to the month/quarter of its <em>Thursday</em>
+    (not Monday), which avoids weeks straddling year boundaries being misattributed.
+  </p>
+  <h4>Rollup rules</h4>
+  <ul>
+    <li>If a goal has <strong>child goals</strong>: progress = average of children's percentages.</li>
+    <li>If a goal has <strong>no children</strong>: progress comes from its own type logic (checklist done/not done, numeric current/target, habit completion count).</li>
+    <li>A <strong>manual override</strong> always wins regardless of children — the % you type is the % shown.</li>
+  </ul>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="ref-streaks">Reference — Streak rules</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Current streak</strong></td>
+          <td>Consecutive <em>scheduled</em> days the habit was completed, counting backward from today (or yesterday if today isn't done yet). Non-scheduled days are skipped and do not break a streak.</td>
+        </tr>
+        <tr>
+          <td><strong>Best streak</strong></td>
+          <td>The longest consecutive run ever achieved for this habit.</td>
+        </tr>
+        <tr>
+          <td><strong>30-day rate</strong></td>
+          <td>Completions ÷ scheduled days in the last 30 calendar days, as a percentage.</td>
+        </tr>
+        <tr>
+          <td><strong>Streak reset</strong></td>
+          <td>Occurs when a scheduled day passes without a completion. The streak resets to 0 and starts rebuilding from the next completed day.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout tip">
+    <div class="callout-label">Tip</div>
+    Streaks reset at midnight in your local time zone (the app uses your browser's clock).
+    If you complete a habit after midnight, it counts for the new day — mark the previous day
+    manually in the Habits grid view if needed.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 id="ref-data">Reference — Data &amp; privacy</h2>
+  <h3>Where your data lives</h3>
+  <p>HabitTube stores data in two places simultaneously:</p>
+  <ol>
+    <li><strong>Browser localStorage</strong> — key <code>habittube-data-v1</code>. Instant, works offline. Cleared if you clear site data in your browser.</li>
+    <li><strong>Supabase</strong> — the whole state blob is stored as a single row in the <code>states</code> table, keyed by your user ID. Synced on every change (1.2 s debounce).</li>
+  </ol>
+  <h3>What is stored</h3>
+  <p>A single JSON blob containing: habits array, completions map, goals array, tasks map, focusLog array, moods map, notes map, visions map, reviews map, recurringTasks array, chat messages, and settings (theme, AI model).</p>
+  <h3>Cross-device sync</h3>
+  <p>Sign in to the same account on a second device. On load, the app pulls from Supabase and uses whichever version has the newer timestamp — your most recent edit on any device wins.</p>
+  <h3>Deleting your data</h3>
+  <p>Clear localStorage in your browser dev tools (<code>Application → Local storage → Delete key habittube-data-v1</code>). To delete the Supabase record, contact the account admin or delete your Supabase account row directly.</p>
+
+  <hr />
+  <p style="font-size: 13px; color: var(--text-4); text-align: center;">
+    HabitTube · Built by Sumant Sagar · <a href="https://github.com/SumantSagar73/habitTube" style="color: var(--text-4);">GitHub</a>
+  </p>
+
+</main>
+
+<button id="toc-toggle" onclick="document.getElementById('sidebar').style.display='block'; this.style.display='none';" aria-label="Open table of contents">≡</button>
+
+<script>
+  // Highlight active sidebar link on scroll
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = [...document.querySelectorAll('h2[id], h3[id]')];
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = document.querySelector(`.sidebar-link[href="#${e.target.id}"]`);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

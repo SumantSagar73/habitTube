@@ -1,5 +1,13 @@
 import { currentStreak } from '../utils'
 
+function fmt12h(timeStr) {
+  if (!timeStr) return ''
+  const [h, m] = timeStr.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = ((h + 11) % 12) + 1
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 export default function HabitCard({ habit, done, completions, onToggle, overdue }) {
   const streak = currentStreak(habit, completions)
 
@@ -39,7 +47,7 @@ export default function HabitCard({ habit, done, completions, onToggle, overdue 
         </span>
         {habit.time && (
           <span className={`text-xs font-medium ${overdue && !done ? 'text-neutral-900 underline underline-offset-2 dark:text-white' : 'text-neutral-400 dark:text-neutral-500'}`}>
-            {habit.time}
+            {fmt12h(habit.time)}
             {overdue && !done && ' · overdue'}
           </span>
         )}
@@ -47,7 +55,8 @@ export default function HabitCard({ habit, done, completions, onToggle, overdue 
 
       {streak > 0 && (
         <span className="shrink-0 rounded-full border border-neutral-200 px-3 py-1 text-xs font-bold text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-          🔥 {streak}
+          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/><path d="M12 18a2 2 0 0 1-2-2c0-2 2-3 2-5 0 2 2 3 2 5a2 2 0 0 1-2 2z"/></svg>
+          {streak}
         </span>
       )}
     </button>

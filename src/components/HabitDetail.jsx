@@ -64,7 +64,7 @@ export default function HabitDetail({ habit, completions, missNotes, dark, onMis
 
         {/* stats */}
         <div className="mb-6 flex gap-3">
-          <Stat value={`🔥 ${streak}`} label="current streak" />
+          <Stat value={<><svg className="inline h-4 w-4 mr-1 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/><path d="M12 18a2 2 0 0 1-2-2c0-2 2-3 2-5 0 2 2 3 2 5a2 2 0 0 1-2 2z"/></svg>{streak}</>} label="current streak" />
           <Stat value={best} label="best streak" />
           <Stat value={`${rate}%`} label="last 30 days" />
         </div>

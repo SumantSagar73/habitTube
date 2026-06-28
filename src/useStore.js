@@ -9,17 +9,21 @@ const DEFAULT_DATA = {
   missNotes: {}, // { habitId: { 'YYYY-MM-DD': 'why I skipped' } }
   goals: [], // cascade nodes: { id, level, period, parentId, title, color, type, ... }
   tasks: {}, // { 'YYYY-MM-DD': [ { id, title, done, goalId } ] }
+  recurringTasks: [], // [{ id, title, repeat: 'daily'|'weekly'|'weekdays', goalId, priority }]
   visions: {}, // { '2026': 'my north-star vision for the year' }
   reviews: {}, // { periodKey: { done, note, goalNotes: { goalId: 'why short' }, ratedAt } }
   aiEnabled: true,
   aiModel: 'llama-3.3-70b-versatile',
   ai: { motivation: null, insights: null }, // cached generations
-  chat: { messages: [] }, // coach conversation history
+  chat: { messages: [] }, // coach conversation history (legacy widget)
+  chatSessions: [], // [{ id, title, createdAt, updatedAt, messages: [] }]
+  activeChatId: null,
   moods: {}, // { 'YYYY-MM-DD': 1-5 }
   focusLog: [], // [{ date, minutes, goalId, label }]
   remindersEnabled: false,
   soundEnabled: true,
-  theme: 'dark',
+  theme: 'dark', // 'light' | 'dark' | 'auto'
+  onboardingDone: false,
 }
 
 function load() {
@@ -40,7 +44,15 @@ export default function useStore() {
   }, [data])
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', data.theme === 'dark')
+    if (data.theme === 'auto') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const apply = () => document.documentElement.classList.toggle('dark', mq.matches)
+      apply()
+      mq.addEventListener('change', apply)
+      return () => mq.removeEventListener('change', apply)
+    } else {
+      document.documentElement.classList.toggle('dark', data.theme === 'dark')
+    }
   }, [data.theme])
 
   return [data, setData]
