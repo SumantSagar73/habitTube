@@ -1,4 +1,5 @@
 import { currentStreak } from '../utils'
+import LottieStreak from './LottieStreak'
 
 function fmt12h(timeStr) {
   if (!timeStr) return ''
@@ -55,7 +56,7 @@ export default function HabitCard({ habit, done, completions, onToggle, overdue 
 
       {streak > 0 && (
         <span className="shrink-0 rounded-full border border-neutral-200 px-3 py-1 text-xs font-bold text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/><path d="M12 18a2 2 0 0 1-2-2c0-2 2-3 2-5 0 2 2 3 2 5a2 2 0 0 1-2 2z"/></svg>
+          <LottieStreak size={18} />
           {streak}
         </span>
       )}

@@ -154,15 +154,30 @@ export default function App() {
     }
   }
 
+  // Web Worker tick — not throttled when tab/window is hidden (fixes Discord screen-share freeze)
   useEffect(() => {
     if (!focus.running) return
-    const id = setInterval(() => {
+    const worker = new Worker(new URL('./timer.worker.js', import.meta.url))
+    worker.onmessage = () => {
       const f = focusRef.current
       const rem = Math.max(0, Math.round((f.endsAt - Date.now()) / 1000))
       if (rem <= 0) finishFocus()
       else setFocus((prev) => ({ ...prev, remaining: rem }))
-    }, 1000)
-    return () => clearInterval(id)
+    }
+    worker.postMessage('start')
+    // Snap display immediately when tab becomes visible again
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        const f = focusRef.current
+        if (f.running) setFocus((prev) => ({ ...prev, remaining: Math.max(0, Math.round((f.endsAt - Date.now()) / 1000)) }))
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      worker.postMessage('stop')
+      worker.terminate()
+      document.removeEventListener('visibilitychange', onVisible)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus.running])
 

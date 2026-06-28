@@ -12,6 +12,7 @@
     "migrate": "node migrate.js"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.19.5",
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.3.0",
     "react": "^19.2.6",

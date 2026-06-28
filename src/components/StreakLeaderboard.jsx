@@ -1,4 +1,5 @@
 import { bestStreak, currentStreak } from '../utils'
+import LottieStreak from './LottieStreak'
 
 export default function StreakLeaderboard({ habits, completions }) {
   const rows = habits
@@ -23,7 +24,7 @@ export default function StreakLeaderboard({ habits, completions }) {
             <span className="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">{h.name}</span>
             <div className="flex shrink-0 items-center gap-1.5">
               <span className="flex items-center gap-1 text-sm font-extrabold text-neutral-900 dark:text-white">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z"/><path d="M12 18a2 2 0 0 1-2-2c0-2 2-3 2-5 0 2 2 3 2 5a2 2 0 0 1-2 2z"/></svg>
+                <LottieStreak size={20} />
                 {cur}
               </span>
               {best > cur && (
