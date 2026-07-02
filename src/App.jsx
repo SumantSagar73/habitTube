@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import exportExcel from './exportExcel'
 import { playAlarm } from './sounds'
 import AuthScreen from './components/AuthScreen'
+import LandingPage from './components/LandingPage'
 import CalendarView from './components/CalendarView'
 import CoachChat from './components/CoachChat'
 import CoachWidget from './components/CoachWidget'
@@ -20,10 +21,12 @@ import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
 import NotificationCenter from './NotificationCenter'
+import PublicProfile from './components/PublicProfile'
 import useNotifications from './useNotifications'
 import useReminders from './useReminders'
 import useStore from './useStore'
 import useSync from './useSync'
+import { pushPublicSnapshot } from './sync'
 import { supabase } from './utils/supabase'
 import { addDays, dateKey, habitsForDate, todayKey, uid } from './utils'
 
@@ -47,8 +50,18 @@ export default function App() {
   const [newMenu, setNewMenu] = useState(false)
   const [wizard, setWizard] = useState(false)
   const [settings, setSettings] = useState(false)
-  const [focus, setFocus] = useState({ running: false, endsAt: null, remaining: 25 * 60, durationMin: 25, goalId: null, label: '' })
+  const [focus, setFocus] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('habittube-focus') || 'null')
+      if (saved && saved.endsAt) {
+        const remaining = Math.max(0, Math.round((saved.endsAt - Date.now()) / 1000))
+        if (remaining > 0) return { ...saved, running: false, remaining } // restore paused
+      }
+    } catch {}
+    return { running: false, endsAt: null, remaining: 25 * 60, durationMin: 25, goalId: null, label: '', isBreak: false, autoBreak: false }
+  })
   const [timerFs, setTimerFs] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
 
   // Auth
   const [user, setUser] = useState(null)
@@ -68,6 +81,20 @@ export default function App() {
   useReminders(data)
   useNotifications(data, setData)
   const syncStatus = useSync(data, setData, user?.id)
+
+  // Push public profile snapshot whenever sharing is enabled
+  useEffect(() => {
+    if (!user?.id || !data.shareProfile) return
+    const snapshot = {
+      displayName: user.email?.split('@')[0] || 'Anonymous',
+      habits: data.habits,
+      completions: data.completions,
+      goals: data.goals,
+      focusLog: data.focusLog || [],
+    }
+    pushPublicSnapshot(user.id, snapshot).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.shareProfile, user?.id])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -112,9 +139,9 @@ export default function App() {
     const key = todayKey()
     const today = new Date()
     const dow = today.getDay()
-    const existingTitles = new Set((data.tasks[key] || []).map((t) => t.title.toLowerCase()))
+    const existingIds = new Set((data.tasks[key] || []).filter((t) => t.fromRecurring).map((t) => t.fromRecurring))
     const toAdd = data.recurringTasks.filter((rt) => {
-      if (existingTitles.has(rt.title.toLowerCase())) return false
+      if (existingIds.has(rt.id)) return false
       if (rt.repeat === 'daily') return true
       if (rt.repeat === 'weekdays') return dow >= 1 && dow <= 5
       if (rt.repeat === 'weekly') return rt.weekDay === dow
@@ -131,6 +158,15 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Persist focus state so a refresh mid-session restores the timer
+  useEffect(() => {
+    if (focus.running || (focus.remaining < focus.durationMin * 60 && focus.remaining > 0)) {
+      localStorage.setItem('habittube-focus', JSON.stringify(focus))
+    } else {
+      localStorage.removeItem('habittube-focus')
+    }
+  }, [focus])
+
   const focusRef = useRef(focus)
   focusRef.current = focus
 
@@ -145,7 +181,16 @@ export default function App() {
         ...(d.notifications || []),
       ].slice(0, 50),
     }))
-    setFocus((prev) => ({ ...prev, running: false, endsAt: null, remaining: prev.durationMin * 60 }))
+    // Auto-break: chain a break session instead of going idle
+    const breakMin = f.durationMin <= 25 ? 5 : f.durationMin <= 50 ? 10 : 15
+    if (f.autoBreak && !f.isBreak) {
+      setFocus((prev) => ({ ...prev, running: true, isBreak: true, endsAt: Date.now() + breakMin * 60 * 1000, remaining: breakMin * 60, durationMin: breakMin }))
+    } else if (f.isBreak) {
+      // break finished — reset to idle, keep original work duration
+      setFocus((prev) => ({ ...prev, running: false, isBreak: false, endsAt: null, remaining: f.autoBreak ? 25 * 60 : prev.durationMin * 60, durationMin: f.autoBreak ? 25 : prev.durationMin }))
+    } else {
+      setFocus((prev) => ({ ...prev, running: false, endsAt: null, remaining: prev.durationMin * 60 }))
+    }
     if (data.soundEnabled) {
       playAlarm()
     }
@@ -187,8 +232,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus.running])
 
-  function startFocus(durationMin, goalId, label) {
-    setFocus({ running: true, endsAt: Date.now() + durationMin * 60 * 1000, remaining: durationMin * 60, durationMin, goalId, label })
+  function startFocus(durationMin, goalId, label, autoBreak = false) {
+    setFocus({ running: true, endsAt: Date.now() + durationMin * 60 * 1000, remaining: durationMin * 60, durationMin, goalId, label, isBreak: false, autoBreak })
   }
   function pauseFocus() {
     setFocus((f) => ({ ...f, running: false, endsAt: null, remaining: Math.max(0, Math.round((f.endsAt - Date.now()) / 1000)) }))
@@ -234,6 +279,15 @@ export default function App() {
     if (!window.confirm(`Delete “${habit.name}” and all its history?`)) return
     setData((d) => ({ ...d, habits: d.habits.filter((h) => h.id !== habit.id) }))
     setDetailId(null)
+  }
+
+  function freezeStreak(habitId) {
+    const key = todayKey()
+    setData((d) => {
+      const existing = d.streakFreezes?.[habitId] || []
+      if (existing.includes(key)) return d
+      return { ...d, streakFreezes: { ...d.streakFreezes, [habitId]: [...existing, key] } }
+    })
   }
 
   function reorderHabits(orderedHabits) {
@@ -465,15 +519,26 @@ export default function App() {
 
   function deleteGoal(goal) {
     if (!window.confirm(`Delete “${goal.title}”? Sub-goals become standalone and linked tasks are unlinked.`)) return
-    setData((d) => ({
-      ...d,
-      goals: d.goals
-        .filter((g) => g.id !== goal.id)
-        .map((g) => (g.parentId === goal.id ? { ...g, parentId: null } : g)),
-      tasks: Object.fromEntries(
-        Object.entries(d.tasks).map(([k, arr]) => [k, arr.map((t) => (t.goalId === goal.id ? { ...t, goalId: null } : t))])
-      ),
-    }))
+    setData((d) => {
+      // Collect all descendant IDs so we can clear every stale goalId reference
+      const descendants = new Set([goal.id])
+      let changed = true
+      while (changed) {
+        changed = false
+        for (const g of d.goals) {
+          if (!descendants.has(g.id) && descendants.has(g.parentId)) { descendants.add(g.id); changed = true }
+        }
+      }
+      return {
+        ...d,
+        goals: d.goals
+          .filter((g) => g.id !== goal.id)
+          .map((g) => (g.parentId === goal.id ? { ...g, parentId: null } : g)),
+        tasks: Object.fromEntries(
+          Object.entries(d.tasks).map(([k, arr]) => [k, arr.map((t) => (descendants.has(t.goalId) ? { ...t, goalId: null } : t))])
+        ),
+      }
+    })
   }
 
   function setVision(yearKey, text) {
@@ -524,6 +589,12 @@ export default function App() {
     })
   }
 
+  // Public profile route: ?p=<userId>
+  const publicProfileId = new URLSearchParams(window.location.search).get('p')
+  if (publicProfileId) {
+    return <PublicProfile userId={publicProfileId} onBack={() => window.location.href = window.location.pathname} />
+  }
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[#0a0a0a]">
@@ -533,7 +604,9 @@ export default function App() {
   }
 
   if (!user) {
-    return <AuthScreen onAuth={setUser} />
+    return showAuth
+      ? <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false) }} onBack={() => setShowAuth(false)} />
+      : <LandingPage onOpenAuth={() => setShowAuth(true)} />
   }
 
   return (
@@ -723,6 +796,7 @@ export default function App() {
             <TodayView
               habits={data.habits}
               completions={data.completions}
+              freezes={data.streakFreezes || {}}
               notes={data.notes}
               missNotes={data.missNotes}
               tasks={data.tasks}
@@ -741,6 +815,7 @@ export default function App() {
               moods={data.moods}
               onToggle={toggleHabit}
               onToggleOn={toggleHabitOn}
+              onFreeze={freezeStreak}
               onNoteChange={setNote}
               onMissNote={setMissNote}
               onSetMood={setMood}
@@ -885,6 +960,7 @@ export default function App() {
       {modal && (
         <HabitModal
           initial={modal === 'new' ? null : modal}
+          habits={data.habits}
           onSave={saveHabit}
           onClose={() => setModal(null)}
         />
@@ -917,6 +993,9 @@ export default function App() {
           soundEnabled={data.soundEnabled}
           theme={data.theme}
           data={data}
+          userId={user?.id}
+          shareProfile={data.shareProfile || false}
+          onToggleShare={() => setData((d) => ({ ...d, shareProfile: !d.shareProfile }))}
           onToggleAi={() => setData((d) => ({ ...d, aiEnabled: !d.aiEnabled }))}
           onSetModel={(m) => setData((d) => ({ ...d, aiModel: m }))}
           onToggleReminders={toggleReminders}

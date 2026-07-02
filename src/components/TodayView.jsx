@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { quoteOfTheDay } from '../quotes'
-import { addDays, dateKey, formatNice, habitsForDate, isDone, nextPriority, sortByPriority, todayKey } from '../utils'
+import { addDays, dateKey, formatNice, habitsForDate, isDone, isDoneOrFrozen, nextPriority, sortByPriority, todayKey } from '../utils'
+import { quickChat } from '../ai'
 import AICoach from './AICoach'
 import Confetti from './Confetti'
 import DayTimeline from './DayTimeline'
@@ -74,6 +75,7 @@ function LinkSelect({ goals, habits, value, onChange, compact, className }) {
 export default function TodayView({
   habits,
   completions,
+  freezes,
   notes,
   missNotes,
   tasks,
@@ -83,6 +85,7 @@ export default function TodayView({
   focusLog,
   onToggle,
   onToggleOn,
+  onFreeze,
   onNoteChange,
   onMissNote,
   onSetMood,
@@ -146,11 +149,26 @@ export default function TodayView({
   }
 
   const sorted = [...due].sort((a, b) => {
-    const da = isDone(a, completions, key)
-    const db = isDone(b, completions, key)
+    const da = isDoneOrFrozen(a, completions, freezes, key)
+    const db = isDoneOrFrozen(b, completions, freezes, key)
     if (da !== db) return da ? 1 : -1
     return (a.time || '99:99').localeCompare(b.time || '99:99')
   })
+
+  const [copingTips, setCopingTips] = useState({}) // { habitId: { loading, tip } }
+  async function fetchCopingTip(habit) {
+    const reason = (missNotes[habit.id]?.[yKey] || '').trim()
+    if (!reason) return
+    setCopingTips((t) => ({ ...t, [habit.id]: { loading: true, tip: '' } }))
+    try {
+      const reply = await quickChat([
+        { role: 'user', content: `I skipped my habit "${habit.emoji} ${habit.name}" yesterday. Reason: "${reason}". Give me ONE specific, actionable fix in 1-2 sentences to prevent this tomorrow. Be direct, no fluff.` }
+      ])
+      setCopingTips((t) => ({ ...t, [habit.id]: { loading: false, tip: reply } }))
+    } catch {
+      setCopingTips((t) => ({ ...t, [habit.id]: { loading: false, tip: 'Could not get a tip right now.' } }))
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -208,7 +226,24 @@ export default function TodayView({
                       {reason}
                     </button>
                   ))}
+                  {aiEnabled && (missNotes[h.id]?.[yKey] || '').trim() && (
+                    <button
+                      onClick={() => fetchCopingTip(h)}
+                      disabled={copingTips[h.id]?.loading}
+                      className="flex items-center gap-1 rounded-full border border-neutral-200 px-2.5 py-0.5 text-[10px] font-semibold text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-500 dark:hover:text-white"
+                    >
+                      {copingTips[h.id]?.loading ? '…' : '✦ Get AI fix'}
+                    </button>
+                  )}
                 </div>
+                {copingTips[h.id]?.tip && (
+                  <div className="sm:pl-52 mt-1">
+                    <p className="rounded-xl bg-neutral-50 px-3 py-2 text-xs font-medium text-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300">
+                      <span className="font-bold text-neutral-900 dark:text-white">AI fix: </span>
+                      {copingTips[h.id].tip}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -239,19 +274,35 @@ export default function TodayView({
                   className={`grid gap-2.5 sm:grid-cols-2 ${locked ? 'pointer-events-none select-none blur-sm' : ''}`}
                   aria-hidden={locked}
                 >
-                  {sorted.map((h) => (
-                    <HabitCard
-                      key={h.id}
-                      habit={h}
-                      completions={completions}
-                      done={isDone(h, completions, key)}
-                      overdue={!!h.time && h.time < nowHM}
-                      onToggle={() => onToggle(h.id)}
-                    />
-                  ))}
+                  {sorted.map((h) => {
+                    const stackedHabit = h.stackAfter ? habits.find((x) => x.id === h.stackAfter) : null
+                    const triggerDone = stackedHabit ? isDoneOrFrozen(stackedHabit, completions, freezes, key) : false
+                    const thisDone = isDoneOrFrozen(h, completions, freezes, key)
+                    // If this habit has a trigger (stackAfter), only show prompt after trigger is done
+                    const showStackPrompt = stackedHabit && triggerDone && !thisDone
+                    return (
+                      <div key={h.id} className="flex flex-col gap-1">
+                        {showStackPrompt && (
+                          <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-500 dark:bg-neutral-900/60 dark:text-neutral-400">
+                            <span>→ Now:</span>
+                            <span className="font-bold text-neutral-900 dark:text-white">{h.emoji} {h.name}</span>
+                          </div>
+                        )}
+                        <HabitCard
+                          habit={h}
+                          completions={completions}
+                          freezes={freezes}
+                          done={isDone(h, completions, key)}
+                          overdue={!!h.time && h.time < nowHM}
+                          onToggle={() => onToggle(h.id)}
+                          onFreeze={onFreeze}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
                 {locked && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl text-center">
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl text-center">
                     <svg className="h-7 w-7 text-neutral-900 dark:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="4" y="11" width="16" height="10" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -260,6 +311,14 @@ export default function TodayView({
                     <p className="max-w-xs text-sm font-medium text-neutral-500 dark:text-neutral-400">
                       Explain or mark done {unexplained.length === 1 ? "yesterday's miss" : `all ${unexplained.length} of yesterday's misses`} above to unlock today.
                     </p>
+                    <button
+                      onClick={() => {
+                        unexplained.forEach((h) => onMissNote(h.id, yKey, 'skipped'))
+                      }}
+                      className="mt-1 rounded-full border border-neutral-300 px-4 py-1.5 text-xs font-bold text-neutral-500 transition hover:border-neutral-500 hover:text-neutral-900 dark:border-neutral-600 dark:text-neutral-400 dark:hover:border-neutral-400 dark:hover:text-white"
+                    >
+                      Skip reasons & unlock
+                    </button>
                   </div>
                 )}
               </div>

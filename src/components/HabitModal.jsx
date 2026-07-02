@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { EMOJIS } from '../palette'
 import { WEEKDAYS } from '../utils'
 
-export default function HabitModal({ initial, onSave, onClose }) {
+export default function HabitModal({ initial, habits = [], onSave, onClose }) {
   const [name, setName] = useState(initial?.name || '')
   const [emoji, setEmoji] = useState(initial?.emoji || '💪')
   const [days, setDays] = useState(initial?.days || [0, 1, 2, 3, 4, 5, 6])
   const [time, setTime] = useState(initial?.time || '')
+  const [stackAfter, setStackAfter] = useState(initial?.stackAfter || '')
 
   function toggleDay(i) {
     setDays((prev) => (prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i].sort()))
@@ -15,7 +16,7 @@ export default function HabitModal({ initial, onSave, onClose }) {
   function submit(e) {
     e.preventDefault()
     if (!name.trim() || days.length === 0) return
-    onSave({ name: name.trim(), emoji, days, time, color: initial?.color || '#171717' })
+    onSave({ name: name.trim(), emoji, days, time, stackAfter: stackAfter || null, color: initial?.color || '#171717' })
   }
 
   const labelCls = 'mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500'
@@ -86,8 +87,26 @@ export default function HabitModal({ initial, onSave, onClose }) {
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className={`mb-7 ${inputCls} dark:[color-scheme:dark]`}
+          className={`mb-5 ${inputCls} dark:[color-scheme:dark]`}
         />
+
+        {habits.filter((h) => h.id !== initial?.id).length > 0 && (
+          <>
+            <label className={labelCls}>
+              Habit stack <span className="font-normal normal-case tracking-normal">(optional — do this right after)</span>
+            </label>
+            <select
+              value={stackAfter}
+              onChange={(e) => setStackAfter(e.target.value)}
+              className={`mb-7 ${inputCls} dark:[color-scheme:dark]`}
+            >
+              <option value="">None</option>
+              {habits.filter((h) => h.id !== initial?.id).map((h) => (
+                <option key={h.id} value={h.id}>{h.emoji} {h.name}</option>
+              ))}
+            </select>
+          </>
+        )}
 
         <div className="flex gap-3">
           <button

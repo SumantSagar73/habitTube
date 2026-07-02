@@ -5,7 +5,7 @@ const UPDATED_KEY = 'habittube-updated-at'
 
 export default function useSync(data, setData, userId) {
   const [status, setStatus] = useState('offline')
-  const resolvedId = userId || getUserId()
+  const resolvedId = userId ?? null
   const userIdRef = useRef(resolvedId)
   const lastJson = useRef(null)
   const pulled = useRef(false)
@@ -15,6 +15,7 @@ export default function useSync(data, setData, userId) {
     userIdRef.current = resolvedId
     pulled.current = false
     lastJson.current = null
+    if (!resolvedId) { setStatus('offline'); pulled.current = true; return }
     let cancelled = false
     ;(async () => {
       setStatus('syncing')
@@ -44,9 +45,12 @@ export default function useSync(data, setData, userId) {
   // push on change (debounced 1.2s), best-effort
   useEffect(() => {
     if (!pulled.current) return
+    if (!userIdRef.current) return
     const json = JSON.stringify(data)
     if (json === lastJson.current) return
     lastJson.current = json
+    // Stamp local change immediately so a concurrent pull never wins over it
+    localStorage.setItem(UPDATED_KEY, String(Date.now()))
     const t = setTimeout(async () => {
       const updatedAt = Date.now()
       localStorage.setItem(UPDATED_KEY, String(updatedAt))

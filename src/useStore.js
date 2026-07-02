@@ -25,6 +25,8 @@ const DEFAULT_DATA = {
   theme: 'dark', // 'light' | 'dark' | 'auto'
   onboardingDone: false,
   notifications: [], // [{ id, type, title, body, createdAt, read }]
+  streakFreezes: {}, // { habitId: ['YYYY-MM-DD', ...] }
+  shareProfile: false, // when true, push public snapshot for sharing
 }
 
 function load() {

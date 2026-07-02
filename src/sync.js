@@ -28,6 +28,23 @@ export async function pullState(userId) {
   return data // { state, updatedAt } | null
 }
 
+export async function pushPublicSnapshot(userId, snapshot) {
+  const { error } = await supabase
+    .from('public_profiles')
+    .upsert({ userId, snapshot, updatedAt: Date.now() }, { onConflict: 'userId' })
+  if (error) throw new Error(`public profile push failed: ${error.message}`)
+}
+
+export async function fetchPublicSnapshot(userId) {
+  const { data, error } = await supabase
+    .from('public_profiles')
+    .select('snapshot, updatedAt')
+    .eq('userId', userId)
+    .maybeSingle()
+  if (error) throw new Error(`public profile fetch failed: ${error.message}`)
+  return data
+}
+
 export async function pushState(userId, state, updatedAt) {
   const { data, error } = await supabase
     .from('states')

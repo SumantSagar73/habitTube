@@ -111,9 +111,12 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
 }
 
 const STARTERS = [
+  'I want to build a workout habit',
+  'Help me plan my week',
   'How am I doing this week?',
-  'Should I push harder or slow down?',
   'I keep skipping my habits — help me fix it.',
+  'Build me a complete fitness plan',
+  'Should I push harder or slow down?',
   'Help me plan a realistic week.',
 ]
 

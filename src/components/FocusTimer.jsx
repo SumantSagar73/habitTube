@@ -15,6 +15,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
   const [goalId, setGoalId] = useState('')
   const [label, setLabel] = useState('')
   const [isFs, setIsFs] = useState(false)
+  const [autoBreak, setAutoBreak] = useState(false)
 
   // Lock scroll behind the overlay and notify parent
   useEffect(() => {
@@ -31,7 +32,8 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
   const full = focus.durationMin * 60
   const paused = !focus.running && focus.remaining < full && focus.remaining > 0
   const active = focus.running || paused
-  const pct = active ? Math.round((1 - focus.remaining / full) * 100) : 0
+  const pct = active ? Math.min(100, Math.max(0, Math.round((1 - focus.remaining / full) * 100))) : 0
+  const isBreak = focus.isBreak
 
   // ── Fullscreen overlay ───────────────────────────────────────────────────────
   if (isFs) {
@@ -202,10 +204,15 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
 
       {active ? (
         <div className="flex flex-col items-center gap-4 py-2">
+          {isBreak && (
+            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+              Break time ☕
+            </span>
+          )}
           <span className="font-mono text-5xl font-extrabold tabular-nums tracking-tight text-neutral-900 dark:text-white">
             {fmtClock(focus.remaining)}
           </span>
-          {(focus.label || focus.goalId) && (
+          {!isBreak && (focus.label || focus.goalId) && (
             <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
               {focus.label || goals.find((g) => g.id === focus.goalId)?.title}
             </p>
@@ -224,7 +231,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
               </button>
             )}
             <button onClick={onStop} className="rounded-full border border-neutral-200 px-5 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-200">
-              Stop
+              {isBreak ? 'Skip break' : 'Stop'}
             </button>
           </div>
         </div>
@@ -254,11 +261,26 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
               {goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
             </Select>
           )}
+          <div className="flex items-center justify-between rounded-xl border border-neutral-200 px-3.5 py-2 dark:border-neutral-800">
+            <div>
+              <p className="text-xs font-bold text-neutral-700 dark:text-neutral-200">Auto-break</p>
+              <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                {duration <= 25 ? '25/5' : duration <= 50 ? '50/10' : '90/15'} · break starts automatically
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutoBreak((v) => !v)}
+              className={`relative h-6 w-11 rounded-full transition ${autoBreak ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${autoBreak ? 'left-5' : 'left-0.5'}`} />
+            </button>
+          </div>
           <button
-            onClick={() => onStart(duration, goalId || null, label.trim())}
+            onClick={() => onStart(duration, goalId || null, label.trim(), autoBreak)}
             className="w-full rounded-full bg-neutral-900 py-2.5 font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
-            Start {duration}-minute session
+            Start {duration}-min session
           </button>
         </div>
       )}

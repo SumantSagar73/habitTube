@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../utils/supabase'
 
-export default function AuthScreen({ onAuth }) {
+export default function AuthScreen({ onAuth, onBack }) {
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,6 +35,14 @@ export default function AuthScreen({ onAuth }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-[#0a0a0a]">
       <div className="w-full max-w-sm">
+        {onBack && (
+          <button onClick={onBack} className="mb-6 flex items-center gap-1.5 text-sm font-medium text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+            Back
+          </button>
+        )}
         <h1 className="mb-1 text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
           HabitTube<span className="text-neutral-400 dark:text-neutral-600">.</span>
         </h1>

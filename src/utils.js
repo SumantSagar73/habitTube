@@ -61,6 +61,20 @@ export function isDone(habit, completions, key) {
   return (completions[key] || []).includes(habit.id)
 }
 
+export function isFrozen(habit, freezes, key) {
+  return (freezes?.[habit.id] || []).includes(key)
+}
+
+export function isDoneOrFrozen(habit, completions, freezes, key) {
+  return isDone(habit, completions, key) || isFrozen(habit, freezes, key)
+}
+
+// How many freezes this habit has used in the given calendar month (YYYY-MM)
+export function freezesThisMonth(habit, freezes) {
+  const monthPrefix = todayKey().slice(0, 7)
+  return (freezes?.[habit.id] || []).filter((d) => d.startsWith(monthPrefix)).length
+}
+
 export function habitsForDate(habits, date) {
   const key = dateKey(date)
   return habits.filter((h) => h.createdAt <= key && isScheduled(h, date))
@@ -70,14 +84,14 @@ export function habitsForDate(habits, date) {
 
 // Current streak: consecutive scheduled days completed, counting back from
 // today. A still-pending today doesn't break the streak.
-export function currentStreak(habit, completions) {
+export function currentStreak(habit, completions, freezes) {
   let streak = 0
   let d = new Date()
   for (let i = 0; i < 3700; i++) {
     const key = dateKey(d)
     if (key < habit.createdAt) break
     if (isScheduled(habit, d)) {
-      if (isDone(habit, completions, key)) streak++
+      if (isDoneOrFrozen(habit, completions, freezes, key)) streak++
       else if (i > 0) break
     }
     d = addDays(d, -1)
@@ -85,14 +99,14 @@ export function currentStreak(habit, completions) {
   return streak
 }
 
-export function bestStreak(habit, completions) {
+export function bestStreak(habit, completions, freezes) {
   let best = 0
   let run = 0
   let d = parseKey(habit.createdAt)
   const today = new Date()
   while (d <= today) {
     if (isScheduled(habit, d)) {
-      if (isDone(habit, completions, dateKey(d))) {
+      if (isDoneOrFrozen(habit, completions, freezes, dateKey(d))) {
         run++
         best = Math.max(best, run)
       } else if (dateKey(d) !== todayKey()) {

@@ -36,6 +36,10 @@ async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_to
   return data.choices?.[0]?.message?.content?.trim() || ''
 }
 
+export async function quickChat(messages, model = DEFAULT_MODEL) {
+  return chat(messages, { model, max_tokens: 150, temperature: 0.7 })
+}
+
 // ---- context builders ----
 function todaySummary({ habits, completions, tasks, goals }) {
   const key = todayKey()
