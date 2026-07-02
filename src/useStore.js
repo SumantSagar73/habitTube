@@ -24,6 +24,7 @@ const DEFAULT_DATA = {
   soundEnabled: true,
   theme: 'dark', // 'light' | 'dark' | 'auto'
   onboardingDone: false,
+  notifications: [], // [{ id, type, title, body, createdAt, read }]
 }
 
 function load() {

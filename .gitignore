@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# React Native app (separate project, own git repo)
+app/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -9,8 +9,6 @@ const PRECACHE_ASSETS = [
   '/favicon.svg',
   '/icon.svg',
   '/icons.svg',
-  '/notification.mp3',
-  '/alarm.mp3'
 ]
 
 self.addEventListener('install', (e) => {
@@ -43,6 +41,34 @@ self.addEventListener('fetch', (e) => {
         })
         .catch(() => cached || caches.match('/'))
       return cached || network
+    })
+  )
+})
+
+// The main page posts { type: 'NOTIFY', title, body, tag } to show a
+// notification from the SW context — more reliable than new Notification() and
+// works even when the tab is backgrounded.
+self.addEventListener('message', (e) => {
+  if (e.data?.type !== 'NOTIFY') return
+  const { title, body, tag } = e.data
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag: tag || 'habittube',
+      icon: '/icon.svg',
+      badge: '/favicon.svg',
+    })
+  )
+})
+
+// Clicking an OS notification focuses the app window.
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const existing = list.find((c) => c.url.startsWith(self.location.origin))
+      if (existing) return existing.focus()
+      return self.clients.openWindow('/')
     })
   )
 })

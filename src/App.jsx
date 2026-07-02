@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import exportExcel from './exportExcel'
+import { playAlarm } from './sounds'
 import AuthScreen from './components/AuthScreen'
 import CalendarView from './components/CalendarView'
 import CoachChat from './components/CoachChat'
@@ -18,6 +19,8 @@ import TodayView from './components/TodayView'
 import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
+import NotificationCenter from './NotificationCenter'
+import useNotifications from './useNotifications'
 import useReminders from './useReminders'
 import useStore from './useStore'
 import useSync from './useSync'
@@ -63,6 +66,7 @@ export default function App() {
 
   const dark = data.theme === 'dark' || (data.theme === 'auto' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   useReminders(data)
+  useNotifications(data, setData)
   const syncStatus = useSync(data, setData, user?.id)
 
   // Keyboard shortcuts
@@ -132,25 +136,27 @@ export default function App() {
 
   function finishFocus() {
     const f = focusRef.current
+    const noteId = `focus-done-${todayKey()}-${f.goalId || 'free'}-${Date.now()}`
     setData((d) => ({
       ...d,
       focusLog: [...(d.focusLog || []), { date: todayKey(), minutes: f.durationMin, goalId: f.goalId, label: f.label }],
+      notifications: [
+        { id: noteId, type: 'focus', title: `⏱ Focus session done — ${f.durationMin} min`, body: f.label || 'Great work! Take a short break.', createdAt: Date.now(), read: false },
+        ...(d.notifications || []),
+      ].slice(0, 50),
     }))
     setFocus((prev) => ({ ...prev, running: false, endsAt: null, remaining: prev.durationMin * 60 }))
     if (data.soundEnabled) {
-      try {
-        const audio = new Audio('/alarm.mp3')
-        audio.play().catch(() => {})
-      } catch (err) {
-        console.warn('Could not play alarm sound:', err)
-      }
+      playAlarm()
     }
-    try {
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('Focus session done ⏱️', { body: f.label ? `Nice work on “${f.label}”.` : 'Nice deep-work session.' })
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      const title = 'Focus session done ⏱️'
+      const body = f.label ? `Nice work on “${f.label}”.` : 'Nice deep-work session.'
+      if (navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'NOTIFY', title, body, tag: 'focus-done' })
+      } else {
+        try { new Notification(title, { body }) } catch {}
       }
-    } catch {
-      // ignore
     }
   }
 
@@ -330,6 +336,16 @@ export default function App() {
     setData((d) => ({ ...d, moods: { ...d.moods, [key]: v } }))
   }
 
+  function markNotificationRead(id) {
+    setData((d) => ({ ...d, notifications: d.notifications.map((n) => n.id === id ? { ...n, read: true } : n) }))
+  }
+  function markAllNotificationsRead() {
+    setData((d) => ({ ...d, notifications: d.notifications.map((n) => ({ ...n, read: true })) }))
+  }
+  function clearNotifications() {
+    setData((d) => ({ ...d, notifications: [] }))
+  }
+
   async function toggleReminders() {
     if (!data.remindersEnabled && typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
       try {
@@ -389,6 +405,18 @@ export default function App() {
       const priority = ['high', 'medium', 'low'].includes(it.priority) ? it.priority : 'medium'
       newTasks[dk].push({ id: uid(), title: it.title.trim(), done: false, goalId: deepest, priority })
     }
+    const newHabits = items
+      .filter((x) => x.kind === 'habit' && x.name?.trim())
+      .map((it) => ({
+        id: uid(),
+        createdAt: todayKey(),
+        name: it.name.trim(),
+        emoji: it.emoji || '💪',
+        days: Array.isArray(it.days) && it.days.length ? it.days.map(Number) : [0, 1, 2, 3, 4, 5, 6],
+        time: it.time || '',
+        color: '#171717',
+      }))
+
     const updates = items.filter((x) => x.kind === 'update')
     const norm = (s) => (s || '').trim().toLowerCase()
     const matchTitle = (title, t) => norm(t) === norm(title) || norm(t).includes(norm(title)) || norm(title).includes(norm(t))
@@ -427,7 +455,7 @@ export default function App() {
       }
 
       for (const [k, arr] of Object.entries(newTasks)) tasks[k] = [...(tasks[k] || []), ...arr]
-      return { ...d, goals: [...goals, ...newGoals], tasks }
+      return { ...d, goals: [...goals, ...newGoals], habits: [...d.habits, ...newHabits], tasks }
     })
   }
 
@@ -620,6 +648,12 @@ export default function App() {
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
               </svg>
             </a>
+            <NotificationCenter
+              notifications={data.notifications || []}
+              onMarkRead={markNotificationRead}
+              onMarkAllRead={markAllNotificationsRead}
+              onClear={clearNotifications}
+            />
             <button
               onClick={() => setSettings(true)}
               title="Settings"

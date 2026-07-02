@@ -34,8 +34,11 @@ function fmtDate(ts) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+const DAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
 function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
   const goals = items.filter((i) => i.kind === 'goal')
+  const habits = items.filter((i) => i.kind === 'habit')
   const tasks = items.filter((i) => i.kind === 'task')
   const updates = items.filter((i) => i.kind === 'update')
   return (
@@ -53,6 +56,19 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
             {g.type === 'numeric' && (
               <span className="shrink-0 text-xs font-medium text-neutral-400 dark:text-neutral-500">→ {g.target} {g.unit}</span>
             )}
+          </div>
+        ))}
+        {habits.map((h, i) => (
+          <div key={`h${i}`} className="flex items-center gap-2.5">
+            <span className="w-16 shrink-0 rounded-full border border-neutral-200 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-[0.06em] text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+              Habit
+            </span>
+            <span className="flex-1 text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+              {h.emoji && <span className="mr-1">{h.emoji}</span>}{h.name}
+            </span>
+            <span className="shrink-0 text-xs font-medium text-neutral-400 dark:text-neutral-500">
+              {Array.isArray(h.days) ? h.days.map((d) => DAY_ABBR[d]).join(' ') : 'daily'}{h.time ? ` · ${h.time}` : ''}
+            </span>
           </div>
         ))}
         {tasks.map((t, i) => (

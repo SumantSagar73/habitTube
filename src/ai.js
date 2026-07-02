@@ -19,7 +19,7 @@ async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_to
       body: JSON.stringify({ model, messages, temperature, max_tokens }),
     })
   } catch {
-    throw new Error('Could not reach the AI. Make sure the app is running via “npm run dev”.')
+    throw new Error('Could not reach the AI. Make sure the app is running via "npm run dev".')
   }
   const text = await res.text()
   if (!res.ok) {
@@ -162,41 +162,73 @@ export async function aiTest(model) {
 }
 
 // ---- conversational coach ----
-const COACH_SYSTEM = `You are the user's "1% Coach" inside HabitTube. Your one and only purpose is to help the user get 1% better every single day through their habits, goals, streaks and daily execution. You are sharp, direct and data-driven — not a therapist, not a life coach, not a motivational speaker.
+const COACH_SYSTEM = `You are the user's "1% Coach" inside HabitTube — sharp, direct, data-driven. Your purpose: help the user build habits, reach goals, and execute daily.
 
-HARD SCOPE RULES (non-negotiable):
-- You ONLY discuss: habits, streaks, goal progress, daily tasks, focus sessions, consistency patterns, what to do next to improve.
-- You do NOT discuss: general life advice, relationships, career philosophy, mental health topics, mindset fluff, life purpose, motivation speeches, or anything not directly tied to the user's HabitTube data.
-- If the user asks about anything outside your scope, politely redirect: "I'm laser-focused on your 1% daily habit and goal improvement — let's stay on that. [redirect to something in their data]."
-- Never give medical or clinical advice. If the user seems in distress, say: "That sounds hard — please talk to someone you trust. I'm here for your habits and goals when you're ready."
+SCOPE (non-negotiable):
+- ONLY discuss: habits, streaks, goal progress, tasks, focus sessions, consistency patterns, what to do next.
+- If asked anything outside this scope, redirect: "I'm focused on your 1% daily improvement — let's stay there."
+- Never give medical advice. If user seems in distress: "That sounds hard — please talk to someone you trust. I'm here for habits and goals when you're ready."
 
-YOUR JOB — in priority order:
-1. Look at the data and find the ONE most impactful 1% improvement the user can make today. Always lead with this.
-2. If they're slipping (low completion, skipped habits, stalled goals) → prescribe a smaller, sustainable version of the habit. Cutting scope IS winning.
-3. If they're crushing it (high completion, long streaks, goals on track) → suggest a 1% stretch: add a rep, add a minute, raise a target.
-4. When unsure, ask ONE tight clarifying question about their habits or goals.
+HOW TO RESPOND WHEN THE USER MENTIONS A NEW GOAL OR INTENTION:
+Step 1 — Offer 2-3 distinct plan options (different approaches), each as a one-line label. Ask which one resonates, or if they have their own idea.
+Step 2 — Once they confirm an option (or describe their own), output a COMPLETE cascade plan covering ALL levels: year → quarter → month → week, plus concrete daily tasks AND recurring habits to build. This is the full plan — don't hold back.
+
+EXAMPLE of Step 1 (offer options):
+User: "I want to get fit"
+You: "Here are 3 angles — which fits you best?
+A) Strength-first: build muscle through 3x/week lifting
+B) Cardio-first: run a 5K in 8 weeks
+C) Hybrid: 20 min movement every day, no excuses
+Or tell me what you have in mind."
+
+EXAMPLE of Step 2 (full plan after "B"):
+Then output a complete plan with year goal, quarter goal, month goal, week goal, daily tasks for this week, AND a recurring habit — all in one json block.
+
+YOUR OTHER JOBS:
+1. Find the ONE most impactful 1% improvement from their data. Lead with it when not planning.
+2. If slipping → prescribe a smaller, sustainable version. Cutting scope IS winning.
+3. If crushing it → suggest a 1% stretch.
+4. When unsure, ask ONE tight clarifying question.
 
 REPLY STYLE:
-- Short, punchy, specific. Use their real habit names and numbers.
-- No hashtags. No corporate buzzwords. No generic platitudes ("you got this!", "believe in yourself").
-- End every reply with ONE concrete next action tied to their data, or a proposal to add something to their plan.
-- Keep replies under 120 words unless you're proposing a plan.
+- Short, specific. Use their real habit names and numbers.
+- No hashtags, buzzwords, generic platitudes.
+- Keep non-plan replies under 120 words.
 
-You KNOW the user's real data (snapshot below). Use it — streaks, completion rates, goal percentages, skip reasons.
+CRITICAL JSON RULE — when proposing a plan, you MUST end your reply with a fenced code block that starts with \`\`\`json and contains a single object with a "plan" array. NO exceptions. The array holds every item. Never output a bare JSON object. Never put items outside the array.
 
-You can ADD things to HabitTube for them. When they need a plan, propose it and end with exactly ONE fenced json block:
+CORRECT format (always wrap everything in {"plan":[...]}):
 \`\`\`json
 {"plan":[
- {"kind":"goal","level":"year","title":"Get healthy","type":"checklist"},
- {"kind":"goal","level":"quarter","title":"Run a 10K","type":"checklist"},
- {"kind":"goal","level":"month","title":"Run 50 km this month","type":"numeric","target":50,"unit":"km"},
- {"kind":"goal","level":"week","title":"Run 12 km this week","type":"numeric","target":12,"unit":"km"},
- {"kind":"task","title":"Easy 30-minute jog","dayOffset":0}
+ {"kind":"goal","level":"year","title":"Get fit and strong","type":"checklist"},
+ {"kind":"goal","level":"quarter","title":"Run a 5K without stopping","type":"checklist"},
+ {"kind":"goal","level":"month","title":"Run 60 km this month","type":"numeric","target":60,"unit":"km"},
+ {"kind":"goal","level":"week","title":"Run 15 km this week","type":"numeric","target":15,"unit":"km"},
+ {"kind":"habit","name":"Morning run","emoji":"🏃","days":[1,3,5],"time":"07:00"},
+ {"kind":"task","title":"First easy 3 km run — just show up","dayOffset":0,"priority":"high"},
+ {"kind":"task","title":"Plan this week's run routes","dayOffset":1,"priority":"medium"}
 ]}
 \`\`\`
-Rules: level is one of year|quarter|month|week; type is checklist or numeric (numeric needs target and unit); tasks take dayOffset 0-6 where 0 is today and may include "priority":"high"|"medium"|"low". Order goals year→quarter→month→week. Keep plans focused (3-6 items). Write a brief explanation BEFORE the json. Never claim it's already added — the user confirms. No json if not proposing items.
 
-You can also UPDATE existing items: {"kind":"update","target":"goal","title":"Run 50 km this month","set":{"target":40}} or {"kind":"update","target":"task","title":"Morning jog","set":{"done":true}}. Use updates when the user wants to ease targets, mark done, or change priority. User still confirms.`
+WRONG (never do this — bare object, missing plan wrapper):
+\`\`\`json
+{"kind":"task","title":"Morning stretch","dayOffset":0}
+\`\`\`
+
+SCHEMA RULES:
+- goal: level = year|quarter|month|week; type = checklist or numeric (numeric needs target + unit); always include ALL 4 levels.
+- habit: name (string), emoji (one emoji), days (array of 0-6 where 0=Sun), time (optional "HH:MM").
+- task: title, dayOffset 0-6 (0=today), optional priority high|medium|low.
+- Order in array: goals year→quarter→month→week, then habits, then tasks.
+- Write explanation BEFORE the json block. Never say it's already added — user confirms by clicking the button.
+- Do NOT output any json if you are NOT proposing a complete plan (e.g. during the option-selection step).
+
+UPDATES — adjust existing items (user still confirms):
+\`\`\`json
+{"plan":[
+ {"kind":"update","target":"goal","title":"Run 60 km this month","set":{"target":40}}
+]}
+\`\`\``
 
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
@@ -279,7 +311,7 @@ export function aiCoachReply(messages, contextText, model = DEFAULT_MODEL) {
       { role: 'system', content: `${COACH_SYSTEM}\n\nUSER DATA SNAPSHOT:\n${contextText}` },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ],
-    { model, temperature: 0.85, max_tokens: 800 }
+    { model, temperature: 0.85, max_tokens: 2000 }
   )
 }
 
@@ -300,11 +332,11 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
         ],
         stream: true,
         temperature: 0.85,
-        max_tokens: 800,
+        max_tokens: 2000,
       }),
     })
   } catch {
-    throw new Error('Could not reach the AI. Make sure the app is running via “npm run dev”.')
+    throw new Error('Could not reach the AI. Make sure the app is running via "npm run dev".')
   }
   if (!res.ok) {
     const t = await res.text()
@@ -338,59 +370,63 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
   }
 }
 
-// Pull a {"plan":[...]} the coach may have appended (fenced or bare) out of its
-// reply. Returns the prose with the block stripped + the parsed item list.
+// Filter raw parsed items into valid plan entries.
+function filterItems(arr) {
+  if (!Array.isArray(arr)) return []
+  return arr.filter((it) => {
+    if (!it || typeof it !== 'object') return false
+    if (it.kind === 'habit') return typeof it.name === 'string' && it.name.trim()
+    return (it.kind === 'goal' || it.kind === 'task' || it.kind === 'update') && typeof it.title === 'string' && it.title.trim()
+  })
+}
+
+// Pull a plan the coach may have appended out of its reply.
+// Handles all formats the model might emit:
+//   {"plan":[...]}          ← ideal
+//   [{...}, {...}]          ← bare array
+//   {"kind":"habit",...}    ← single bare object
+// Returns the prose with the block stripped + the parsed item list.
 export function parseProposal(text) {
   if (!text) return { clean: text, proposal: null }
   let raw = null
-  let parsed = null
+  let items = null
 
   const fenceRe = /```(?:json)?\s*([\s\S]*?)```/gi
   let m
   while ((m = fenceRe.exec(text))) {
     try {
-      const obj = JSON.parse(m[1].trim())
-      if (obj && Array.isArray(obj.plan)) {
-        raw = m[0]
-        parsed = obj
-      }
-    } catch {
-      // not the block we want
-    }
+      const body = m[1].trim()
+      const obj = JSON.parse(body)
+      let found = null
+      if (obj && Array.isArray(obj.plan)) found = filterItems(obj.plan)           // {"plan":[...]}
+      else if (Array.isArray(obj)) found = filterItems(obj)                        // [{...},...]
+      else if (obj && obj.kind) found = filterItems([obj])                         // {"kind":...}
+      if (found && found.length) { raw = m[0]; items = found; break }
+    } catch {}
   }
 
-  if (!parsed) {
+  // Fallback: scan bare JSON outside fences
+  if (!items) {
+    // Try {"plan":[...]}
     const start = text.search(/\{\s*"plan"/)
     if (start >= 0) {
-      let depth = 0
-      let end = -1
+      let depth = 0, end = -1
       for (let j = start; j < text.length; j++) {
         if (text[j] === '{') depth++
-        else if (text[j] === '}' && --depth === 0) {
-          end = j
-          break
-        }
+        else if (text[j] === '}' && --depth === 0) { end = j; break }
       }
       if (end > start) {
         try {
           const obj = JSON.parse(text.slice(start, end + 1))
-          if (obj && Array.isArray(obj.plan)) {
-            raw = text.slice(start, end + 1)
-            parsed = obj
-          }
-        } catch {
-          // ignore
-        }
+          const found = obj && Array.isArray(obj.plan) ? filterItems(obj.plan) : null
+          if (found && found.length) { raw = text.slice(start, end + 1); items = found }
+        } catch {}
       }
     }
   }
 
-  if (!parsed) return { clean: text.trim(), proposal: null }
+  if (!items) return { clean: text.trim(), proposal: null }
 
-  const items = parsed.plan.filter(
-    (it) =>
-      it && (it.kind === 'goal' || it.kind === 'task' || it.kind === 'update') && typeof it.title === 'string' && it.title.trim()
-  )
   const clean = text.replace(raw, '').replace(/\n{3,}/g, '\n\n').trim()
-  return { clean: clean || 'Here’s a plan you can add:', proposal: items.length ? items : null }
+  return { clean: clean || 'Here\'s a plan you can add:', proposal: items }
 }

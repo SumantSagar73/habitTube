@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { playNotification } from './sounds'
 import { habitsForDate, isDone, todayKey } from './utils'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -45,24 +46,16 @@ export default function useReminders(data) {
 
     function notify(title, body, tag) {
       if (data.soundEnabled) {
-        try {
-          const audio = new Audio('/notification.mp3')
-          audio.play().catch(() => {})
-        } catch (err) {
-          console.warn('Could not play notification sound:', err)
-        }
+        playNotification()
       }
-      try {
-        const n = new Notification(title, { body, tag })
-        n.onclick = () => {
-          try {
-            window.focus()
-          } catch {
-            // ignore
-          }
-        }
-      } catch {
-        // some browsers require a service worker for the Notification constructor
+      // Prefer SW showNotification (works in backgrounded tabs, required in some browsers)
+      if (navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'NOTIFY', title, body, tag })
+      } else {
+        try {
+          const n = new Notification(title, { body, tag })
+          n.onclick = () => { try { window.focus() } catch {} }
+        } catch {}
       }
     }
 
