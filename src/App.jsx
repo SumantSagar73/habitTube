@@ -22,6 +22,8 @@ import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
 import NotificationCenter from './NotificationCenter'
 import PublicProfile from './components/PublicProfile'
+import RoomPage from './components/RoomPage'
+import CreateRoomDialog from './components/CreateRoomDialog'
 import useNotifications from './useNotifications'
 import useReminders from './useReminders'
 import useStore from './useStore'
@@ -62,6 +64,7 @@ export default function App() {
   })
   const [timerFs, setTimerFs] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [showRoomDialog, setShowRoomDialog] = useState(false)
 
   // Auth
   const [user, setUser] = useState(null)
@@ -595,6 +598,28 @@ export default function App() {
     return <PublicProfile userId={publicProfileId} onBack={() => window.location.href = window.location.pathname} />
   }
 
+  // Group focus room route: ?room=CODE (works logged-in or out)
+  const _roomParams = new URLSearchParams(window.location.search)
+  const roomCode = _roomParams.get('room')
+  const roomPin = _roomParams.get('pin')
+  if (roomCode) {
+    return (
+      <RoomPage
+        roomCode={roomCode}
+        roomPin={roomPin}
+        user={user}
+        onSaveSession={(minutes) => {
+          if (user) {
+            setData((d) => ({
+              ...d,
+              focusLog: [...(d.focusLog || []), { date: todayKey(), minutes, goalId: null, label: `Group room ${roomCode}` }],
+            }))
+          }
+        }}
+      />
+    )
+  }
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[#0a0a0a]">
@@ -665,6 +690,19 @@ export default function App() {
                 {fmtClock(focus.remaining)}
               </button>
             )}
+            <button
+              onClick={() => setShowRoomDialog(true)}
+              title="Start a group focus room"
+              className="hidden md:flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600 dark:hover:text-white"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Group focus
+            </button>
             <button
               onClick={() => exportExcel(data)}
               title="Export to Excel"
@@ -1005,6 +1043,8 @@ export default function App() {
           onClose={() => setSettings(false)}
         />
       )}
+      {showRoomDialog && <CreateRoomDialog onClose={() => setShowRoomDialog(false)} />}
+
       <CoachWidget
         enabled={data.aiEnabled}
         model={data.aiModel}
