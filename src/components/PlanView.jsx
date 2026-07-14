@@ -162,10 +162,12 @@ export default function PlanView({
   setPlanMode,
 }) {
   const now = currentPeriods()
+  // Open directly at the current week — day-to-day planning happens here.
+  // The cascade ribbon jumps up to month/quarter/year in one click.
   const [year, setYear] = useState(Number(now.year))
-  const [quarter, setQuarter] = useState(null)
-  const [month, setMonth] = useState(null)
-  const [week, setWeek] = useState(null)
+  const [quarter, setQuarter] = useState(now.quarter)
+  const [month, setMonth] = useState(now.month)
+  const [week, setWeek] = useState(now.week)
   const [editor, setEditor] = useState(null) // { initial, level, period, parentId, defaultColor }
   const [review, setReview] = useState(null) // { level, period }
 
@@ -387,6 +389,14 @@ export default function PlanView({
               <button onClick={() => navigatePeriod(1)} title={`Next ${LEVEL_LABEL[level].toLowerCase()}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-400">›</button>
             </div>
             <CascadeRibbon crumbs={crumbs} ctx={ctx} onJump={jump} />
+            {!(level === 'week' && week === now.week) && (
+              <button
+                onClick={() => { setYear(Number(now.year)); setQuarter(now.quarter); setMonth(now.month); setWeek(now.week) }}
+                className="rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-white"
+              >
+                ↩ This week
+              </button>
+            )}
           </div>
 
           {/* Two-column layout: left = sidebar (progress + quarters), right = goals + tasks */}

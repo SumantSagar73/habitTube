@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { quoteOfTheDay } from '../quotes'
-import { addDays, dateKey, formatNice, habitsForDate, isDone, isDoneOrFrozen, nextPriority, sortByPriority, todayKey } from '../utils'
+import { addDays, dateKey, formatNice, habitsForDate, isDone, nextPriority, sortByPriority, todayKey } from '../utils'
 import { quickChat } from '../ai'
 import AICoach from './AICoach'
 import Confetti from './Confetti'
@@ -11,7 +11,6 @@ import HabitCard from './HabitCard'
 import { PriorityDot, PrioritySelect } from './Priority'
 import ProgressRing from './ProgressRing'
 import Select from './Select'
-import StreakLeaderboard from './StreakLeaderboard'
 
 function accountabilityMessage(pendingHabits, doneHabits, totalHabits, pendingTasks, doneTasks, totalTasks, hour) {
   const total = totalHabits + totalTasks
@@ -75,7 +74,7 @@ function LinkSelect({ goals, habits, value, onChange, compact, className }) {
 export default function TodayView({
   habits,
   completions,
-  freezes,
+  skips,
   notes,
   missNotes,
   tasks,
@@ -85,7 +84,8 @@ export default function TodayView({
   focusLog,
   onToggle,
   onToggleOn,
-  onFreeze,
+  onSkipHabit,
+  onUnskipHabit,
   onNoteChange,
   onMissNote,
   onSetMood,
@@ -111,20 +111,23 @@ export default function TodayView({
   const key = todayKey()
   const now = new Date()
   const due = habitsForDate(habits, now)
-  const doneCount = due.filter((h) => isDone(h, completions, key)).length
-  const pending = due.length - doneCount
+  const isSkipped = (h) => (skips?.[h.id] || []).includes(key)
+  // Habits consciously skipped today are taken off the plan for counting
+  const activeDue = due.filter((h) => !isSkipped(h))
+  const doneCount = activeDue.filter((h) => isDone(h, completions, key)).length
+  const pending = activeDue.length - doneCount
 
   // Confetti when all habits are just completed
   const [confetti, setConfetti] = useState(false)
   const prevDoneRef = useRef(doneCount)
   useEffect(() => {
-    if (due.length > 0 && doneCount === due.length && prevDoneRef.current < due.length) {
+    if (activeDue.length > 0 && doneCount === activeDue.length && prevDoneRef.current < activeDue.length) {
       setConfetti(true)
       const t = setTimeout(() => setConfetti(false), 4000)
       return () => clearTimeout(t)
     }
     prevDoneRef.current = doneCount
-  }, [doneCount, due.length])
+  }, [doneCount, activeDue.length])
   const todayTasksList = tasks[key] || []
   const doneTasksCount = todayTasksList.filter((t) => t.done).length
   const totalTasksCount = todayTasksList.length
@@ -149,8 +152,8 @@ export default function TodayView({
   }
 
   const sorted = [...due].sort((a, b) => {
-    const da = isDoneOrFrozen(a, completions, freezes, key)
-    const db = isDoneOrFrozen(b, completions, freezes, key)
+    const da = isDone(a, completions, key) || isSkipped(a)
+    const db = isDone(b, completions, key) || isSkipped(b)
     if (da !== db) return da ? 1 : -1
     return (a.time || '99:99').localeCompare(b.time || '99:99')
   })
@@ -276,8 +279,8 @@ export default function TodayView({
                 >
                   {sorted.map((h) => {
                     const stackedHabit = h.stackAfter ? habits.find((x) => x.id === h.stackAfter) : null
-                    const triggerDone = stackedHabit ? isDoneOrFrozen(stackedHabit, completions, freezes, key) : false
-                    const thisDone = isDoneOrFrozen(h, completions, freezes, key)
+                    const triggerDone = stackedHabit ? isDone(stackedHabit, completions, key) : false
+                    const thisDone = isDone(h, completions, key)
                     // If this habit has a trigger (stackAfter), only show prompt after trigger is done
                     const showStackPrompt = stackedHabit && triggerDone && !thisDone
                     return (
@@ -291,11 +294,13 @@ export default function TodayView({
                         <HabitCard
                           habit={h}
                           completions={completions}
-                          freezes={freezes}
                           done={isDone(h, completions, key)}
                           overdue={!!h.time && h.time < nowHM}
+                          skipped={isSkipped(h)}
+                          skipReason={missNotes[h.id]?.[key] || ''}
                           onToggle={() => onToggle(h.id)}
-                          onFreeze={onFreeze}
+                          onSkip={onSkipHabit}
+                          onUnskip={onUnskipHabit}
                         />
                       </div>
                     )
@@ -368,7 +373,7 @@ export default function TodayView({
           <section className="flex flex-col items-center gap-5 rounded-3xl border border-neutral-200 p-6 text-center dark:border-neutral-800 dark:bg-[#111]">
             <div className="flex flex-wrap items-center gap-6 justify-center">
               <div className="flex flex-col items-center gap-2">
-                <ProgressRing done={doneCount} total={due.length} size={100} />
+                <ProgressRing done={doneCount} total={activeDue.length} size={100} />
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">Habits</span>
               </div>
               <div className="flex flex-col items-center gap-2">
@@ -381,7 +386,7 @@ export default function TodayView({
                 {formatNice(key)}
               </p>
               <h2 className="mt-1 text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
-                {(pending === 0 && due.length > 0) && (totalTasksCount === 0 || doneTasksCount === totalTasksCount) ? 'Plan complete.' : "Today's plan"}
+                {(pending === 0 && activeDue.length > 0) && (totalTasksCount === 0 || doneTasksCount === totalTasksCount) ? 'Plan complete.' : "Today's plan"}
               </h2>
               <p className="mt-2 text-xs leading-relaxed font-semibold text-neutral-400 dark:text-neutral-500">
                 {accountabilityMessage(pending, doneCount, due.length, pendingTasksCount, doneTasksCount, totalTasksCount, now.getHours())}
@@ -414,8 +419,6 @@ export default function TodayView({
             onSave={onSaveMotivation}
             onOpenCoach={onOpenCoach}
           />
-
-          <StreakLeaderboard habits={habits} completions={completions} />
 
           {/* Quote of the day */}
           <section className="rounded-3xl border border-neutral-100 bg-neutral-50/50 p-6 text-center dark:border-neutral-800/40 dark:bg-neutral-900/10">

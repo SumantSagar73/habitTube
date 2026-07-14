@@ -37,6 +37,30 @@ export default async function exportExcel({ habits, completions, notes, missNote
   const ctx = { goals, tasks, habits, completions }
   const LEVEL_ORDER = { year: 0, quarter: 1, month: 2, week: 3 }
 
+  // 0. Summary dashboard — the at-a-glance sheet, first in the workbook
+  const allTasks = Object.values(tasks).flat()
+  const doneTasks = allTasks.filter((t) => t.done).length
+  const focusMinutes = focusLog.reduce((a, f) => a + (f.minutes || 0), 0)
+  const moodVals = Object.values(moods).filter(Boolean)
+  const avgMood = moodVals.length ? (moodVals.reduce((a, v) => a + v, 0) / moodVals.length) : 0
+  const rates = habits.map((h) => habitRate(h, completions, 30)).filter((r) => r != null)
+  const avgRate = rates.length ? Math.round(rates.reduce((a, r) => a + r, 0) / rates.length) : 0
+  const longestCurrent = habits.reduce((mx, h) => Math.max(mx, currentStreak(h, completions)), 0)
+  const longestEver = habits.reduce((mx, h) => Math.max(mx, bestStreak(h, completions)), 0)
+  const summaryRows = [
+    { Metric: 'Exported on', Value: today },
+    { Metric: 'Habits tracked', Value: habits.length },
+    { Metric: 'Avg completion (last 30 days)', Value: `${avgRate}%` },
+    { Metric: 'Longest current streak', Value: `${longestCurrent} days` },
+    { Metric: 'Longest streak ever', Value: `${longestEver} days` },
+    { Metric: 'Goals set', Value: goals.length },
+    { Metric: 'Tasks completed', Value: `${doneTasks} / ${allTasks.length}` },
+    { Metric: 'Focus sessions', Value: `${focusLog.length} (${focusMinutes} min)` },
+    { Metric: 'Journal entries', Value: Object.values(notes).filter((n) => (n || '').trim()).length },
+    { Metric: 'Average mood', Value: avgMood ? `${avgMood.toFixed(1)} / 5` : '—' },
+  ]
+  addSheet(XLSX, wb, 'Summary', summaryRows, 'No data yet')
+
   // 1. Habits overview
   addSheet(
     XLSX,

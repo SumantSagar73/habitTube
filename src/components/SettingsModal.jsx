@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AI_MODELS, aiTest } from '../ai'
 import { todayKey } from '../utils'
-import { getUserId } from '../sync'
+import { pullState } from '../sync'
+import { listSnapshots, saveSnapshot } from '../snapshots'
 import Select from './Select'
 
 export default function SettingsModal({
@@ -27,15 +28,116 @@ export default function SettingsModal({
   const [restoreMsg, setRestoreMsg] = useState('')
   const fileRef = useRef(null)
   const notifBlocked = typeof Notification !== 'undefined' && Notification.permission === 'denied'
-  const [userIdInput, setUserIdInput] = useState(() => getUserId())
+  const [importId, setImportId] = useState('')
+  const [importState, setImportState] = useState('') // '', 'loading', 'ok', 'fail'
+  const [importMsg, setImportMsg] = useState('')
 
-  function handleSaveUserId() {
-    const trimmed = userIdInput.trim()
-    if (!trimmed) return
-    if (window.confirm('Change Sync User ID? This will reload the app to pull data for the new ID.')) {
-      localStorage.setItem('habittube-user-id', trimmed)
-      localStorage.removeItem('habittube-updated-at')
-      window.location.reload()
+  // Backup snapshots (point-in-time restore)
+  const [snapshots, setSnapshots] = useState(null) // null = not loaded yet
+  const [snapMsg, setSnapMsg] = useState('')
+  useEffect(() => {
+    if (!userId) return
+    listSnapshots(userId).then(setSnapshots).catch(() => setSnapshots([]))
+  }, [userId])
+
+  function countLabel(state) {
+    const habits = (state?.habits || []).length
+    const tasks = Object.values(state?.tasks || {}).reduce((a, arr) => a + (arr?.length || 0), 0)
+    const goals = (state?.goals || []).length
+    return `${habits} habits · ${goals} goals · ${tasks} tasks`
+  }
+
+  async function restoreSnapshot(snap) {
+    if (!window.confirm(`Restore your data to ${new Date(snap.createdAt).toLocaleString()}?\n\n${countLabel(snap.state)}\n\nYour current data is snapshotted first, so this is undoable.`)) return
+    setSnapMsg('Restoring…')
+    // Safety net: snapshot the current state before overwriting it
+    await saveSnapshot(userId, data, 'pre-restore')
+    onRestore(snap.state)
+    setSnapMsg('Restored — syncing to your account now.')
+    listSnapshots(userId).then(setSnapshots).catch(() => {})
+  }
+
+  // Merge two lists of {id, ...} objects, keeping current items on conflict
+  function mergeById(current = [], imported = []) {
+    const map = new Map()
+    for (const x of imported) if (x && x.id) map.set(x.id, x)
+    for (const x of current) if (x && x.id) map.set(x.id, x)
+    return [...map.values()]
+  }
+
+  // Merge date-keyed maps of task arrays: union of dates, union of tasks per date
+  function mergeTaskMap(current = {}, imported = {}) {
+    const out = { ...imported, ...current }
+    for (const k of Object.keys(imported)) {
+      if (Array.isArray(current[k]) && Array.isArray(imported[k])) {
+        const ids = new Set(current[k].map((t) => t.id))
+        out[k] = [...current[k], ...imported[k].filter((t) => !ids.has(t.id))]
+      }
+    }
+    return out
+  }
+
+  // Merge date-keyed maps of habit-id arrays (completions)
+  function mergeCompletions(current = {}, imported = {}) {
+    const out = { ...imported, ...current }
+    for (const k of Object.keys(imported)) {
+      if (Array.isArray(current[k]) && Array.isArray(imported[k])) {
+        out[k] = [...new Set([...current[k], ...imported[k]])]
+      }
+    }
+    return out
+  }
+
+  // Additive merge: nothing in the current data is ever removed
+  function mergeStates(current, imported) {
+    return {
+      ...current,
+      habits: mergeById(current.habits, imported.habits),
+      goals: mergeById(current.goals, imported.goals),
+      tasks: mergeTaskMap(current.tasks, imported.tasks),
+      completions: mergeCompletions(current.completions, imported.completions),
+      notes: { ...imported.notes, ...current.notes },
+      missNotes: { ...imported.missNotes, ...current.missNotes },
+      moods: { ...imported.moods, ...current.moods },
+      visions: { ...imported.visions, ...current.visions },
+      reviews: { ...imported.reviews, ...current.reviews },
+      focusLog: (() => {
+        const seen = new Set((current.focusLog || []).map((f) => JSON.stringify(f)))
+        return [...(current.focusLog || []), ...(imported.focusLog || []).filter((f) => !seen.has(JSON.stringify(f)))]
+      })(),
+    }
+  }
+
+  // Pull data stored under an old/other sync ID and MERGE it into this account.
+  // Never deletes anything; stashes a pre-import snapshot for undo.
+  async function handleImportOldId() {
+    const oldId = importId.trim()
+    if (!oldId) return
+    setImportState('loading')
+    setImportMsg('')
+    try {
+      const remote = await pullState(oldId)
+      if (!remote || !remote.state) {
+        setImportState('fail')
+        setImportMsg(`No data found for ID "${oldId}".`)
+        return
+      }
+      const sanitized = validateAndSanitizeBackup(remote.state)
+      if (!window.confirm(`Found ${sanitized.habits.length} habits and ${sanitized.goals.length} goals under "${oldId}". Merge them into this account? Your existing data is kept — nothing gets deleted.`)) {
+        setImportState('')
+        return
+      }
+      try {
+        localStorage.setItem('habittube-pre-import-backup', JSON.stringify({ savedAt: Date.now(), data }))
+      } catch { /* storage full — merge is additive anyway */ }
+      await saveSnapshot(userId, data, 'pre-import') // durable safety net
+      onRestore(mergeStates(data, sanitized))
+      setImportState('ok')
+      setImportMsg('Merged — it will sync to your account in a moment.')
+      setImportId('')
+    } catch (e) {
+      setImportState('fail')
+      setImportMsg(e.message || 'Import failed.')
     }
   }
 
@@ -281,26 +383,44 @@ export default function SettingsModal({
           Synchronization
         </label>
         <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
-          <p className="font-bold text-neutral-900 dark:text-white">Sync User ID</p>
-          <p className="mb-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">
-            Set this to your previous MongoDB user ID to sync your data.
+          <p className="font-bold text-neutral-900 dark:text-white">Account sync</p>
+          <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
+            {userId
+              ? 'Your data syncs to your account — sign in with the same email on any device (web or mobile app) to see the same data.'
+              : 'You are not signed in. Data is stored only in this browser — sign in to sync it across devices.'}
           </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={userIdInput}
-              onChange={(e) => {
-                setUserIdInput(e.target.value)
-              }}
-              className="flex-1 rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:border-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:hover:border-neutral-500 dark:focus:border-neutral-500"
-            />
-            <button
-              onClick={handleSaveUserId}
-              className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-            >
-              Update
-            </button>
-          </div>
+          {userId && (
+            <p className="mt-2 break-all rounded-lg bg-neutral-100 px-3 py-1.5 font-mono text-[11px] text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400" title="Your account ID (read-only)">
+              {userId}
+            </p>
+          )}
+          {userId && (
+            <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              <p className="font-bold text-neutral-900 dark:text-white">Import from an old sync ID</p>
+              <p className="mb-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">
+                Used the app before accounts existed? Enter your old sync ID to merge that data into this account — nothing here gets deleted.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={importId}
+                  onChange={(e) => setImportId(e.target.value)}
+                  placeholder="e.g. sumant_data"
+                  className="flex-1 rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:border-neutral-400 focus:border-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:hover:border-neutral-500 dark:focus:border-neutral-500"
+                />
+                <button
+                  onClick={handleImportOldId}
+                  disabled={importState === 'loading'}
+                  className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                >
+                  {importState === 'loading' ? '…' : 'Import'}
+                </button>
+              </div>
+              {importMsg && (
+                <p className={`mt-2 text-sm font-medium ${importState === 'ok' ? 'text-emerald-500' : 'text-red-500'}`}>{importMsg}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* data backup */}
@@ -324,10 +444,54 @@ export default function SettingsModal({
         </div>
         {restoreMsg && <p className="mt-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">{restoreMsg}</p>}
 
+        {/* Point-in-time restore from automatic cloud snapshots */}
+        {userId && (
+          <>
+            <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
+              Restore a previous version
+            </label>
+            <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+              <p className="mb-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">
+                Automatic daily backups of your account. Pick a date to roll back to — your current data is snapshotted first, so it's undoable.
+              </p>
+              {snapshots === null ? (
+                <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">Loading…</p>
+              ) : snapshots.length === 0 ? (
+                <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
+                  No snapshots yet. They start once the <span className="font-mono">state_snapshots</span> table exists and you reopen the app on a new day.
+                </p>
+              ) : (
+                <div className="max-h-56 space-y-1.5 overflow-y-auto">
+                  {snapshots.map((s) => (
+                    <div key={s.id} className="flex items-center gap-2 rounded-xl border border-neutral-100 px-3 py-2 dark:border-neutral-800/70">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-neutral-800 dark:text-neutral-100">
+                          {new Date(s.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                          {s.reason && s.reason !== 'daily' && (
+                            <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">{s.reason.replace('pre-', 'before ')}</span>
+                          )}
+                        </p>
+                        <p className="truncate text-xs font-medium text-neutral-400 dark:text-neutral-500">{countLabel(s.state)}</p>
+                      </div>
+                      <button
+                        onClick={() => restoreSnapshot(s)}
+                        className="shrink-0 rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:text-white"
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {snapMsg && <p className="mt-2 text-sm font-medium text-emerald-500">{snapMsg}</p>}
+            </div>
+          </>
+        )}
+
         <p className="mt-6 text-xs leading-relaxed font-medium text-neutral-400 dark:text-neutral-500">
-          AI runs through Groq via the local dev server, so your API key stays on your machine and never enters the
-          browser. It works while the app runs with <span className="font-bold">npm run dev</span>. To change the key,
-          edit <span className="font-bold">.env.local</span> and restart. Install HabitTube to your device from your
+          AI runs through a server-side proxy that injects the Groq API key, so the key never enters the browser bundle.
+          It works both on the deployed site (via the <span className="font-bold">/api/groq</span> serverless function) and
+          locally with <span className="font-bold">npm run dev</span>. Install HabitTube to your device from your
           browser's "Install app" option.
         </p>
 

@@ -22,13 +22,12 @@ import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
 import NotificationCenter from './NotificationCenter'
 import PublicProfile from './components/PublicProfile'
-import RoomPage from './components/RoomPage'
-import CreateRoomDialog from './components/CreateRoomDialog'
 import useNotifications from './useNotifications'
 import useReminders from './useReminders'
 import useStore from './useStore'
 import useSync from './useSync'
 import { pushPublicSnapshot } from './sync'
+import { maybeDailySnapshot } from './snapshots'
 import { supabase } from './utils/supabase'
 import { addDays, dateKey, habitsForDate, todayKey, uid } from './utils'
 
@@ -64,7 +63,6 @@ export default function App() {
   })
   const [timerFs, setTimerFs] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
-  const [showRoomDialog, setShowRoomDialog] = useState(false)
 
   // Auth
   const [user, setUser] = useState(null)
@@ -84,6 +82,16 @@ export default function App() {
   useReminders(data)
   useNotifications(data, setData)
   const syncStatus = useSync(data, setData, user?.id)
+
+  // Daily backup snapshot — once per calendar day, after the first sync settles
+  // so we snapshot the reconciled state (not the pre-pull local state).
+  const snappedRef = useRef(false)
+  useEffect(() => {
+    if (snappedRef.current || !user?.id || syncStatus !== 'synced') return
+    snappedRef.current = true
+    maybeDailySnapshot(user.id, data)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, syncStatus])
 
   // Push public profile snapshot whenever sharing is enabled
   useEffect(() => {
@@ -284,13 +292,26 @@ export default function App() {
     setDetailId(null)
   }
 
-  function freezeStreak(habitId) {
+  // Overdue habit → consciously skip it for today, logging an optional reason.
+  // Records the reason as today's miss note so it's captured now, not tomorrow.
+  function skipHabit(habitId, reason) {
     const key = todayKey()
     setData((d) => {
-      const existing = d.streakFreezes?.[habitId] || []
-      if (existing.includes(key)) return d
-      return { ...d, streakFreezes: { ...d.streakFreezes, [habitId]: [...existing, key] } }
+      const existing = d.skips?.[habitId] || []
+      const skips = existing.includes(key) ? d.skips : { ...d.skips, [habitId]: [...existing, key] }
+      const missNotes = reason
+        ? { ...d.missNotes, [habitId]: { ...(d.missNotes[habitId] || {}), [key]: reason } }
+        : d.missNotes
+      return { ...d, skips, missNotes }
     })
+  }
+
+  function unskipHabit(habitId) {
+    const key = todayKey()
+    setData((d) => ({
+      ...d,
+      skips: { ...d.skips, [habitId]: (d.skips?.[habitId] || []).filter((k) => k !== key) },
+    }))
   }
 
   function reorderHabits(orderedHabits) {
@@ -598,28 +619,6 @@ export default function App() {
     return <PublicProfile userId={publicProfileId} onBack={() => window.location.href = window.location.pathname} />
   }
 
-  // Group focus room route: ?room=CODE (works logged-in or out)
-  const _roomParams = new URLSearchParams(window.location.search)
-  const roomCode = _roomParams.get('room')
-  const roomPin = _roomParams.get('pin')
-  if (roomCode) {
-    return (
-      <RoomPage
-        roomCode={roomCode}
-        roomPin={roomPin}
-        user={user}
-        onSaveSession={(minutes) => {
-          if (user) {
-            setData((d) => ({
-              ...d,
-              focusLog: [...(d.focusLog || []), { date: todayKey(), minutes, goalId: null, label: `Group room ${roomCode}` }],
-            }))
-          }
-        }}
-      />
-    )
-  }
-
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[#0a0a0a]">
@@ -690,19 +689,6 @@ export default function App() {
                 {fmtClock(focus.remaining)}
               </button>
             )}
-            <button
-              onClick={() => setShowRoomDialog(true)}
-              title="Start a group focus room"
-              className="hidden md:flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600 dark:hover:text-white"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              Group focus
-            </button>
             <button
               onClick={() => exportExcel(data)}
               title="Export to Excel"
@@ -834,7 +820,7 @@ export default function App() {
             <TodayView
               habits={data.habits}
               completions={data.completions}
-              freezes={data.streakFreezes || {}}
+              skips={data.skips || {}}
               notes={data.notes}
               missNotes={data.missNotes}
               tasks={data.tasks}
@@ -853,7 +839,8 @@ export default function App() {
               moods={data.moods}
               onToggle={toggleHabit}
               onToggleOn={toggleHabitOn}
-              onFreeze={freezeStreak}
+              onSkipHabit={skipHabit}
+              onUnskipHabit={unskipHabit}
               onNoteChange={setNote}
               onMissNote={setMissNote}
               onSetMood={setMood}
@@ -1043,7 +1030,6 @@ export default function App() {
           onClose={() => setSettings(false)}
         />
       )}
-      {showRoomDialog && <CreateRoomDialog onClose={() => setShowRoomDialog(false)} />}
 
       <CoachWidget
         enabled={data.aiEnabled}

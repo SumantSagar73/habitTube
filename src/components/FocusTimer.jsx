@@ -100,11 +100,16 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
 
           {active ? (
             <>
+              {isBreak && (
+                <span className="rounded-full bg-neutral-100 px-4 py-1.5 text-sm font-bold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                  Break time ☕
+                </span>
+              )}
               <span className="font-mono font-extrabold leading-none tabular-nums tracking-tight text-neutral-900 dark:text-white"
                 style={{ fontSize: 'clamp(3.5rem, 20vw, 9rem)' }}>
                 {fmtClock(focus.remaining)}
               </span>
-              {(focus.label || focus.goalId) && (
+              {!isBreak && (focus.label || focus.goalId) && (
                 <p className="text-xl font-medium text-neutral-500 dark:text-neutral-400">
                   {focus.label || goals.find((g) => g.id === focus.goalId)?.title}
                 </p>
@@ -123,7 +128,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
                   </button>
                 )}
                 <button onClick={onStop} className="rounded-full border border-neutral-300 px-7 py-3 text-base font-semibold text-neutral-700 transition hover:border-neutral-500 dark:border-neutral-700 dark:text-neutral-200">
-                  Stop
+                  {isBreak ? 'Skip break' : 'Stop'}
                 </button>
               </div>
             </>
@@ -154,8 +159,23 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
                   {goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
                 </Select>
               )}
+              <div className="flex w-full items-center justify-between rounded-xl border border-neutral-200 px-4 py-3 dark:border-neutral-800">
+                <div>
+                  <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200">Auto-break</p>
+                  <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                    {duration <= 25 ? '25/5' : duration <= 50 ? '50/10' : '90/15'} · break starts automatically
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoBreak((v) => !v)}
+                  className={`relative h-6 w-11 rounded-full transition ${autoBreak ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+                >
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${autoBreak ? 'left-5' : 'left-0.5'}`} />
+                </button>
+              </div>
               <button
-                onClick={() => onStart(duration, goalId || null, label.trim())}
+                onClick={() => onStart(duration, goalId || null, label.trim(), autoBreak)}
                 className="w-full rounded-full bg-neutral-900 py-4 text-lg font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
               >
                 Start {duration}-minute session

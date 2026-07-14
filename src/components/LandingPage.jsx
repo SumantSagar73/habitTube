@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import CreateRoomDialog from './CreateRoomDialog'
 
 const DURATIONS = [25, 50, 90]
 
@@ -10,7 +9,6 @@ function fmtClock(secs) {
 }
 
 export default function LandingPage({ onOpenAuth }) {
-  const [showRoomDialog, setShowRoomDialog] = useState(false)
   const [duration, setDuration] = useState(25)
   const [subject, setSubject] = useState('')
   const [remaining, setRemaining] = useState(25 * 60)
@@ -52,7 +50,6 @@ export default function LandingPage({ onOpenAuth }) {
 
   return (
     <>
-    {showRoomDialog && <CreateRoomDialog onClose={() => setShowRoomDialog(false)} />}
     <div className="flex min-h-screen flex-col bg-white dark:bg-[#0a0a0a]">
       {/* Nav */}
       <header className="flex items-center justify-between border-b border-neutral-100 px-6 py-4 dark:border-neutral-900">
@@ -64,16 +61,6 @@ export default function LandingPage({ onOpenAuth }) {
           <span className="text-sm font-extrabold tracking-tight text-neutral-900 dark:text-white">HabitTube</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowRoomDialog(true)}
-            className="flex items-center gap-1.5 rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500"
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            Group focus
-          </button>
           <button
             onClick={onOpenAuth}
             className="rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
@@ -99,16 +86,6 @@ export default function LandingPage({ onOpenAuth }) {
               className="rounded-full bg-neutral-900 px-6 py-3 font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
             >
               Start for free →
-            </button>
-            <button
-              onClick={() => setShowRoomDialog(true)}
-              className="flex items-center gap-2 rounded-full border border-neutral-200 px-6 py-3 font-semibold text-neutral-700 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              Group study room
             </button>
           </div>
         </div>

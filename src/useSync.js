@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { getUserId, pullState, pushState } from './sync'
+import { pullState, pushState } from './sync'
 
 const UPDATED_KEY = 'habittube-updated-at'
+// Pre-auth versions synced under a random ID stored here; read only to
+// migrate that data into the logged-in account on first login.
+const LEGACY_USER_KEY = 'habittube-user-id'
 
 export default function useSync(data, setData, userId) {
   const [status, setStatus] = useState('offline')
   const resolvedId = userId ?? null
   const userIdRef = useRef(resolvedId)
+  const dataRef = useRef(data)
   const lastJson = useRef(null)
   const pulled = useRef(false)
+
+  useEffect(() => { dataRef.current = data }, [data])
 
   // pull once on mount and whenever userId changes (e.g. after login)
   useEffect(() => {
@@ -20,16 +26,32 @@ export default function useSync(data, setData, userId) {
     ;(async () => {
       setStatus('syncing')
       try {
-        const remote = await pullState(resolvedId)
+        let remote = await pullState(resolvedId)
+        // First login on this account: fall back to data synced under the old
+        // anonymous browser ID so nothing looks "reset".
+        if (!remote?.state) {
+          const legacyId = localStorage.getItem(LEGACY_USER_KEY)
+          if (legacyId && legacyId !== resolvedId) {
+            remote = await pullState(legacyId).catch(() => null)
+          }
+        }
+        let next = dataRef.current
         if (!cancelled && remote && remote.state) {
           const localUpdated = Number(localStorage.getItem(UPDATED_KEY) || 0)
           if ((remote.updatedAt || 0) > localUpdated) {
+            next = { ...dataRef.current, ...remote.state }
             lastJson.current = JSON.stringify(remote.state)
             setData((d) => ({ ...d, ...remote.state }))
             localStorage.setItem(UPDATED_KEY, String(remote.updatedAt))
           }
         }
-        if (!cancelled) setStatus('synced')
+        if (!cancelled) {
+          // Claim the account row so other devices logging in see this data
+          const updatedAt = Date.now()
+          await pushState(resolvedId, next, updatedAt)
+          localStorage.setItem(UPDATED_KEY, String(updatedAt))
+          setStatus('synced')
+        }
       } catch {
         if (!cancelled) setStatus('offline')
       } finally {
