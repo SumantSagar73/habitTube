@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { GOAL_COLORS } from '../palette'
-import { addDays, dateKey, formatNice, nextPriority, sortByPriority, todayKey, uid } from '../utils'
+import { addDays, dateKey, formatNice, nextPriority, todayKey, uid } from '../utils'
 import {
   currentPeriods,
   daysOfWeek,
@@ -152,6 +152,7 @@ export default function PlanView({
   onUpdateTask,
   onDeleteTask,
   onMoveTask,
+  onReorderTask,
   onUseTemplate,
   onOpenWizard,
   onSaveReview,
@@ -506,6 +507,7 @@ export default function PlanView({
                   onUpdateTask={onUpdateTask}
                   onDeleteTask={onDeleteTask}
                   onMoveTask={onMoveTask}
+                  onReorderTask={onReorderTask}
                 />
               )}
             </div>
@@ -597,39 +599,90 @@ export default function PlanView({
   )
 }
 
-function WeekBoard({ week, tasks, linkGoals, goals, habits = [], onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onMoveTask }) {
+// Task priority groups. Order matters: tasks render in this order, and reorder
+// is only allowed within the same group ("necessary" can't cross "important").
+const PRIORITY_GROUPS = [
+  { key: 'high', label: 'Most important' },
+  { key: 'medium', label: 'Important' },
+  { key: 'low', label: 'Necessary' },
+]
+
+function readDrag(e) {
+  try { return JSON.parse(e.dataTransfer.getData('application/json')) } catch { return null }
+}
+
+function WeekBoard({ week, tasks, linkGoals, goals, habits = [], onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onMoveTask, onReorderTask }) {
   const days = daysOfWeek(week)
   const today = todayKey()
+  const [dragOverDay, setDragOverDay] = useState(null)
+
   return (
     <section>
-      <h3 className="mb-3 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Daily tasks</h3>
+      <h3 className="mb-1 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Daily tasks</h3>
+      <p className="mb-3 text-xs font-medium text-neutral-400 dark:text-neutral-500">
+        Drag a task to another day, or reorder within its priority group. Use → for a quick bump to tomorrow.
+      </p>
       <div className="grid gap-2.5 lg:grid-cols-2">
         {days.map((d) => {
           const dk = dateKey(d)
           const list = tasks[dk] || []
+          const isOver = dragOverDay === dk
           return (
             <div
               key={dk}
-              className={`rounded-2xl border p-4 ${dk === today ? 'border-neutral-900 dark:border-white' : 'border-neutral-200 dark:border-neutral-800'} bg-white dark:bg-[#111]`}
+              onDragOver={(e) => { e.preventDefault(); if (dragOverDay !== dk) setDragOverDay(dk) }}
+              onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverDay(null) }}
+              onDrop={(e) => {
+                e.preventDefault()
+                const data = readDrag(e)
+                setDragOverDay(null)
+                if (data && data.fromDay !== dk) onMoveTask(data.fromDay, dk, data.taskId)
+              }}
+              className={`rounded-2xl border p-4 transition ${
+                isOver
+                  ? 'border-neutral-900 ring-2 ring-neutral-900/10 dark:border-white dark:ring-white/10'
+                  : dk === today ? 'border-neutral-900 dark:border-white' : 'border-neutral-200 dark:border-neutral-800'
+              } bg-white dark:bg-[#111]`}
             >
               <p className="mb-2 text-sm font-bold text-neutral-900 dark:text-white">
                 {formatNice(dk)} {dk === today && <span className="text-neutral-400">· today</span>}
               </p>
-              <div className="space-y-1.5">
-                {sortByPriority(list).map((t) => (
-                  <WeekTask
-                    key={t.id}
-                    task={t}
-                    dk={dk}
-                    linkGoals={linkGoals}
-                    habits={habits}
-                    onToggleTask={onToggleTask}
-                    onUpdateTask={onUpdateTask}
-                    onDeleteTask={onDeleteTask}
-                    onMoveTask={onMoveTask}
-                  />
-                ))}
-              </div>
+              {list.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-neutral-200 py-3 text-center text-xs font-medium text-neutral-300 dark:border-neutral-800 dark:text-neutral-600">
+                  Drop a task here
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {PRIORITY_GROUPS.map((grp) => {
+                    const groupTasks = list.filter((t) => (t.priority || 'medium') === grp.key)
+                    if (groupTasks.length === 0) return null
+                    return (
+                      <div key={grp.key}>
+                        <p className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                          <PriorityDot priority={grp.key} />
+                          {grp.label}
+                        </p>
+                        <div className="space-y-1.5">
+                          {groupTasks.map((t) => (
+                            <WeekTask
+                              key={t.id}
+                              task={t}
+                              dk={dk}
+                              linkGoals={linkGoals}
+                              habits={habits}
+                              onToggleTask={onToggleTask}
+                              onUpdateTask={onUpdateTask}
+                              onDeleteTask={onDeleteTask}
+                              onMoveTask={onMoveTask}
+                              onReorderTask={onReorderTask}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               <TaskAdder dk={dk} linkGoals={linkGoals} habits={habits} onAddTask={onAddTask} />
             </div>
           )
@@ -639,10 +692,12 @@ function WeekBoard({ week, tasks, linkGoals, goals, habits = [], onAddTask, onTo
   )
 }
 
-function WeekTask({ task, dk, linkGoals, habits = [], onToggleTask, onUpdateTask, onDeleteTask, onMoveTask }) {
+function WeekTask({ task, dk, linkGoals, habits = [], onToggleTask, onUpdateTask, onDeleteTask, onMoveTask, onReorderTask }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(task.title)
+  const [dropTarget, setDropTarget] = useState(false)
   const linkValue = encodeLink(task.goalId, task.habitId)
+  const priority = task.priority || 'medium'
 
   function saveTitle() {
     const v = draft.trim()
@@ -652,7 +707,37 @@ function WeekTask({ task, dk, linkGoals, habits = [], onToggleTask, onUpdateTask
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div
+      draggable={!editing}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('application/json', JSON.stringify({ taskId: task.id, fromDay: dk, priority }))
+      }}
+      onDragOver={(e) => {
+        // Reorder target (within day) or a cross-day move onto this task
+        e.preventDefault()
+        e.stopPropagation()
+        if (!dropTarget) setDropTarget(true)
+      }}
+      onDragLeave={() => setDropTarget(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDropTarget(false)
+        const data = readDrag(e)
+        if (!data || data.taskId === task.id) return
+        if (data.fromDay === dk && data.priority === priority) {
+          onReorderTask(dk, data.taskId, task.id)
+        } else if (data.fromDay !== dk) {
+          // dropped onto a task in another day → move into that day
+          onMoveTask(data.fromDay, dk, data.taskId)
+        }
+      }}
+      className={`flex items-center gap-1.5 rounded-lg ${dropTarget ? 'ring-2 ring-neutral-900/20 dark:ring-white/20' : ''}`}
+    >
+      <span className="shrink-0 cursor-grab text-neutral-300 active:cursor-grabbing dark:text-neutral-600" title="Drag to move or reorder">
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+      </span>
       <PriorityDot priority={task.priority} onClick={() => onUpdateTask(dk, task.id, { priority: nextPriority(task.priority || 'medium') })} />
       <button
         onClick={() => onToggleTask(dk, task.id)}

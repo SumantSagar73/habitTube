@@ -613,6 +613,23 @@ export default function App() {
     })
   }
 
+  // Reorder a task within its own day, inserting it before `targetId`. Only
+  // allowed within the same priority group — a "necessary" task can't be
+  // dragged up into the "important" group (enforced here as a safety net).
+  function reorderTask(dayKey, draggedId, targetId) {
+    setData((d) => {
+      const list = d.tasks[dayKey] || []
+      const dragged = list.find((t) => t.id === draggedId)
+      const target = list.find((t) => t.id === targetId)
+      if (!dragged || !target || draggedId === targetId) return d
+      if ((dragged.priority || 'medium') !== (target.priority || 'medium')) return d
+      const without = list.filter((t) => t.id !== draggedId)
+      const idx = without.findIndex((t) => t.id === targetId)
+      without.splice(idx, 0, dragged)
+      return { ...d, tasks: { ...d.tasks, [dayKey]: without } }
+    })
+  }
+
   // Public profile route: ?p=<userId>
   const publicProfileId = new URLSearchParams(window.location.search).get('p')
   if (publicProfileId) {
@@ -883,6 +900,7 @@ export default function App() {
               onUpdateTask={updateTask}
               onDeleteTask={deleteTask}
               onMoveTask={moveTask}
+              onReorderTask={reorderTask}
               onUseTemplate={useTemplate}
               onOpenWizard={() => setWizard(true)}
               onSaveReview={saveReview}
