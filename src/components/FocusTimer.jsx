@@ -10,7 +10,7 @@ export function fmtClock(secs) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-export default function FocusTimer({ focus, goals, totalToday, todaySessions = [], onStart, onPause, onResume, onStop, onFsChange }) {
+export default function FocusTimer({ focus, goals, totalToday, todaySessions = [], onStart, onPause, onResume, onStop, onFsChange, allowlist = [], blocklist = [], onAddAllowDomain, onRemoveAllowDomain, onAddBlockDomain, onRemoveBlockDomain, blockerInstalled }) {
   const [duration, setDuration] = useState(25)
   const [goalId, setGoalId] = useState('')
   const [label, setLabel] = useState('')
@@ -296,6 +296,15 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${autoBreak ? 'left-5' : 'left-0.5'}`} />
             </button>
           </div>
+          <FocusBlocker
+            allowlist={allowlist}
+            blocklist={blocklist}
+            onAddAllow={onAddAllowDomain}
+            onRemoveAllow={onRemoveAllowDomain}
+            onAddBlock={onAddBlockDomain}
+            onRemoveBlock={onRemoveBlockDomain}
+            installed={blockerInstalled}
+          />
           <button
             onClick={() => onStart(duration, goalId || null, label.trim(), autoBreak)}
             className="w-full rounded-full bg-neutral-900 py-2.5 font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
@@ -305,5 +314,107 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
         </div>
       )}
     </section>
+  )
+}
+
+function DomainChips({ list, onRemove, tone = 'neutral' }) {
+  const cls = tone === 'block'
+    ? 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300'
+    : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200'
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {list.map((d) => (
+        <span key={d} className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cls}`}>
+          {d}
+          <button onClick={() => onRemove?.(d)} className="opacity-60 hover:opacity-100" title="Remove">×</button>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function DomainAdder({ placeholder, onAdd }) {
+  const [input, setInput] = useState('')
+  function add() { if (input.trim()) { onAdd?.(input); setInput('') } }
+  return (
+    <div className="mb-2 flex gap-1.5">
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && add()}
+        placeholder={placeholder}
+        className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-1.5 text-xs font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
+      />
+      <button onClick={add} className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-bold text-white dark:bg-white dark:text-neutral-900">Add</button>
+    </div>
+  )
+}
+
+// Focus site settings for the HabitTube Focus browser extension. Three tiers:
+// allowed (load), off-limits (hard-blocked, no temp escape), everything else
+// (blocked but a 10-min temp-allow is offered).
+function FocusBlocker({ allowlist = [], blocklist = [], onAddAllow, onRemoveAllow, onAddBlock, onRemoveBlock, installed }) {
+  const [open, setOpen] = useState(false)
+  const youtubeAllowed = allowlist.includes('youtube.com')
+
+  return (
+    <div className="rounded-xl border border-neutral-200 dark:border-neutral-800">
+      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between px-3.5 py-2 text-left">
+        <span className="flex items-center gap-1.5">
+          <svg className="h-3.5 w-3.5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span className="text-xs font-bold text-neutral-700 dark:text-neutral-200">Focus blocker</span>
+          <span className={`ml-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${installed ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'}`}>
+            {installed ? 'On' : 'Extension off'}
+          </span>
+        </span>
+        <span className="text-xs text-neutral-400">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="space-y-4 border-t border-neutral-100 px-3.5 py-3 dark:border-neutral-800/60">
+          {!installed && (
+            <p className="text-[11px] leading-relaxed font-medium text-neutral-400 dark:text-neutral-500">
+              Install the free <span className="font-bold text-neutral-600 dark:text-neutral-300">HabitTube Focus</span> extension (Edge → <span className="font-mono">edge://extensions</span> → Developer mode → Load unpacked → pick the <span className="font-mono">extension/</span> folder) to enforce this while you focus.
+            </p>
+          )}
+
+          {/* YouTube — the classic temptation, toggled on/off */}
+          <div className="flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2.5 dark:bg-neutral-900/40">
+            <div>
+              <p className="text-xs font-bold text-neutral-800 dark:text-neutral-100">Allow YouTube during focus</p>
+              <p className="text-[10px] text-neutral-400 dark:text-neutral-500">{youtubeAllowed ? 'Allowed — loads normally' : 'Off-limits — hard-blocked, no exceptions'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => (youtubeAllowed ? onAddBlock?.('youtube.com') : onAddAllow?.('youtube.com'))}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${youtubeAllowed ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${youtubeAllowed ? 'left-5' : 'left-0.5'}`} />
+            </button>
+          </div>
+
+          {/* Allowed */}
+          <div>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">Allowed — only these load during focus</p>
+            <DomainAdder placeholder="e.g. leetcode.com" onAdd={onAddAllow} />
+            {allowlist.length === 0
+              ? <p className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500">No sites yet — add the resources you study on.</p>
+              : <DomainChips list={allowlist} onRemove={onRemoveAllow} />}
+          </div>
+
+          {/* Off-limits */}
+          <div>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">Off-limits — always blocked, no temp-allow</p>
+            <DomainAdder placeholder="e.g. instagram.com" onAdd={onAddBlock} />
+            {blocklist.length === 0
+              ? <p className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500">Nothing hard-blocked yet.</p>
+              : <DomainChips list={blocklist} onRemove={onRemoveBlock} tone="block" />}
+          </div>
+
+          <p className="text-[10px] leading-relaxed text-neutral-400 dark:text-neutral-500">
+            Anything not on either list is blocked too, but offers a one-time 10-minute pass for genuine lookups.
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

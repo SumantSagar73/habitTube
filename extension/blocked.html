@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Focus — HabitTube</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+    }
+    .wrap { max-width: 420px; width: 100%; }
+    .tag { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #666; }
+    .clock { font-size: 88px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 8px 0 4px; letter-spacing: -2px; }
+    .goal { font-size: 18px; font-weight: 500; color: #aaa; margin-bottom: 4px; }
+    .sub { font-size: 14px; color: #666; margin-bottom: 28px; }
+    .blocked { font-size: 13px; font-weight: 600; color: #888; margin-bottom: 28px; }
+    .blocked b { color: #fff; }
+    button {
+      font-family: inherit; cursor: pointer; border: none;
+      background: transparent; color: #555; font-size: 13px; font-weight: 600;
+      border: 1px solid #2a2a2a; border-radius: 999px; padding: 10px 20px;
+      transition: all .15s;
+    }
+    button:hover:not(:disabled) { color: #fff; border-color: #444; }
+    button:disabled { opacity: .5; cursor: default; }
+    #controls { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    #allowBtn { border-color: #3a3a3a; color: #ccc; }
+    .host { color: #fff; font-weight: 700; }
+    .done { color: #4ade80; font-weight: 700; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="tag">Focus mode</p>
+    <div class="clock" id="clock">--:--</div>
+    <p class="goal" id="goal"></p>
+    <p class="sub" id="sub">This site is blocked until your session ends. Get back to it. 🎯</p>
+    <p class="blocked" id="blocked"></p>
+    <div id="controls">
+      <button id="allowBtn" style="display:none">I need this — allow 10 min</button>
+      <button id="endBtn">End focus early</button>
+    </div>
+  </div>
+  <script src="blocked.js"></script>
+</body>
+</html>

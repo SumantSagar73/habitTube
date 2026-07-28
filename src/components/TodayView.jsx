@@ -107,6 +107,13 @@ export default function TodayView({
   onResumeFocus,
   onStopFocus,
   onFsChange,
+  focusAllowlist,
+  focusBlocklist,
+  onAddAllowDomain,
+  onRemoveAllowDomain,
+  onAddBlockDomain,
+  onRemoveBlockDomain,
+  blockerInstalled,
 }) {
   const key = todayKey()
   const now = new Date()
@@ -405,6 +412,13 @@ export default function TodayView({
             onResume={onResumeFocus}
             onStop={onStopFocus}
             onFsChange={onFsChange}
+            allowlist={focusAllowlist}
+            blocklist={focusBlocklist}
+            onAddAllowDomain={onAddAllowDomain}
+            onRemoveAllowDomain={onRemoveAllowDomain}
+            onAddBlockDomain={onAddBlockDomain}
+            onRemoveBlockDomain={onRemoveBlockDomain}
+            blockerInstalled={blockerInstalled}
           />
 
           {/* AI Coach */}

@@ -28,6 +28,7 @@ import useStore from './useStore'
 import useSync from './useSync'
 import { pushPublicSnapshot } from './sync'
 import { maybeDailySnapshot } from './snapshots'
+import { startBlocking, stopBlocking, blockerInstalled } from './focusBlocker'
 import { supabase } from './utils/supabase'
 import { addDays, dateKey, habitsForDate, todayKey, uid } from './utils'
 
@@ -92,6 +93,10 @@ export default function App() {
     maybeDailySnapshot(user.id, data)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, syncStatus])
+
+  // Detect the Focus blocker browser extension
+  const [extInstalled, setExtInstalled] = useState(false)
+  useEffect(() => { blockerInstalled().then(setExtInstalled) }, [])
 
   // Push public profile snapshot whenever sharing is enabled
   useEffect(() => {
@@ -202,6 +207,8 @@ export default function App() {
     } else {
       setFocus((prev) => ({ ...prev, running: false, endsAt: null, remaining: prev.durationMin * 60 }))
     }
+    // Work session ended → lift site blocking (breaks are free time)
+    if (!f.isBreak) stopBlocking()
     if (data.soundEnabled) {
       playAlarm()
     }
@@ -244,16 +251,51 @@ export default function App() {
   }, [focus.running])
 
   function startFocus(durationMin, goalId, label, autoBreak = false) {
-    setFocus({ running: true, endsAt: Date.now() + durationMin * 60 * 1000, remaining: durationMin * 60, durationMin, goalId, label, isBreak: false, autoBreak })
+    const endsAt = Date.now() + durationMin * 60 * 1000
+    setFocus({ running: true, endsAt, remaining: durationMin * 60, durationMin, goalId, label, isBreak: false, autoBreak })
+    const lbl = label || (goalId ? data.goals.find((g) => g.id === goalId)?.title : '') || ''
+    startBlocking(endsAt, data.focusAllowlist || [], data.focusBlocklist || [], lbl)
   }
   function pauseFocus() {
+    stopBlocking()
     setFocus((f) => ({ ...f, running: false, endsAt: null, remaining: Math.max(0, Math.round((f.endsAt - Date.now()) / 1000)) }))
   }
   function resumeFocus() {
-    setFocus((f) => ({ ...f, running: true, endsAt: Date.now() + f.remaining * 1000 }))
+    const f = focusRef.current
+    const endsAt = Date.now() + f.remaining * 1000
+    if (!f.isBreak) startBlocking(endsAt, data.focusAllowlist || [], data.focusBlocklist || [], f.label)
+    setFocus((prev) => ({ ...prev, running: true, endsAt }))
   }
   function stopFocus() {
+    stopBlocking()
     setFocus((f) => ({ ...f, running: false, endsAt: null, remaining: f.durationMin * 60 }))
+  }
+
+  // Focus site lists. A domain is either allowed OR off-limits, never both.
+  const cleanDomain = (domain) => String(domain || '').trim().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase()
+  function addAllowDomain(domain) {
+    const d = cleanDomain(domain)
+    if (!d) return
+    setData((prev) => ({
+      ...prev,
+      focusAllowlist: prev.focusAllowlist?.includes(d) ? prev.focusAllowlist : [...(prev.focusAllowlist || []), d],
+      focusBlocklist: (prev.focusBlocklist || []).filter((x) => x !== d),
+    }))
+  }
+  function removeAllowDomain(domain) {
+    setData((prev) => ({ ...prev, focusAllowlist: (prev.focusAllowlist || []).filter((x) => x !== domain) }))
+  }
+  function addBlockDomain(domain) {
+    const d = cleanDomain(domain)
+    if (!d) return
+    setData((prev) => ({
+      ...prev,
+      focusBlocklist: prev.focusBlocklist?.includes(d) ? prev.focusBlocklist : [...(prev.focusBlocklist || []), d],
+      focusAllowlist: (prev.focusAllowlist || []).filter((x) => x !== d),
+    }))
+  }
+  function removeBlockDomain(domain) {
+    setData((prev) => ({ ...prev, focusBlocklist: (prev.focusBlocklist || []).filter((x) => x !== domain) }))
   }
 
   const focusActive = focus.running || focus.remaining < focus.durationMin * 60
@@ -879,6 +921,13 @@ export default function App() {
               onResumeFocus={resumeFocus}
               onStopFocus={stopFocus}
               onFsChange={setTimerFs}
+              focusAllowlist={data.focusAllowlist || []}
+              focusBlocklist={data.focusBlocklist || []}
+              onAddAllowDomain={addAllowDomain}
+              onRemoveAllowDomain={removeAllowDomain}
+              onAddBlockDomain={addBlockDomain}
+              onRemoveBlockDomain={removeBlockDomain}
+              blockerInstalled={extInstalled}
             />
           )}
           {tab === 'plan' && (

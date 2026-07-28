@@ -26,6 +26,8 @@ const DEFAULT_DATA = {
   onboardingDone: false,
   notifications: [], // [{ id, type, title, body, createdAt, read }]
   skips: {}, // { habitId: ['YYYY-MM-DD', ...] } — habits consciously skipped that day
+  focusAllowlist: [], // domains allowed during a focus session (Focus blocker extension)
+  focusBlocklist: ['youtube.com'], // off-limits domains — hard-blocked, no temp-allow escape
   shareProfile: false, // when true, push public snapshot for sharing
 }
 

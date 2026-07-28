@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 260px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #fff; padding: 16px; }
+    .brand { font-size: 13px; font-weight: 800; letter-spacing: -.3px; }
+    .brand span { color: #555; }
+    .tag { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #666; margin-top: 12px; }
+    .clock { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 2px 0; }
+    .goal { font-size: 12px; color: #aaa; }
+    .idle { font-size: 13px; color: #777; margin-top: 10px; line-height: 1.5; }
+    button { width: 100%; font-family: inherit; cursor: pointer; margin-top: 14px; background: transparent; color: #666; font-size: 12px; font-weight: 700; border: 1px solid #2a2a2a; border-radius: 10px; padding: 9px; transition: all .15s; }
+    button:hover:not(:disabled) { color: #fff; border-color: #444; }
+    button:disabled { opacity: .5; cursor: default; }
+    .done { color: #4ade80; font-size: 12px; font-weight: 700; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="brand">HabitTube<span>.</span> Focus</div>
+  <div id="active" style="display:none">
+    <p class="tag">Focusing</p>
+    <div class="clock" id="clock">--:--</div>
+    <p class="goal" id="goal"></p>
+    <button id="endBtn">End focus early</button>
+  </div>
+  <div id="idle">
+    <p class="idle">No focus session running. Start one from HabitTube and this will block everything except your allowlist.</p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
