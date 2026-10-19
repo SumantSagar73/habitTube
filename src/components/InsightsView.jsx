@@ -21,7 +21,7 @@ function MoodStrip({ moods }) {
   const days = []
   for (let i = 13; i >= 0; i--) days.push(addDays(new Date(), -i))
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <h3 className="mb-1 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Mood</h3>
       <p className="mb-4 text-sm font-medium text-neutral-400 dark:text-neutral-500">Last 14 days</p>
       <div className="flex flex-wrap gap-1.5">
@@ -64,7 +64,7 @@ function FocusChart({ focusLog = [], dark }) {
   const gridColor = dark ? '#262626' : '#e5e5e5'
 
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <div className="mb-4 flex items-baseline justify-between">
         <div>
           <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Focus time</h3>
@@ -87,7 +87,7 @@ function FocusChart({ focusLog = [], dark }) {
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null
                 return (
-                  <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-neutral-700 dark:bg-[#161616]">
+                  <div className="glass-strong rounded-xl px-3 py-2 text-sm shadow-lg">
                     <p className="font-semibold text-neutral-900 dark:text-white">{payload[0].payload.label}</p>
                     <p className="text-neutral-500 dark:text-neutral-400">{payload[0].value} minutes focused</p>
                   </div>
@@ -105,7 +105,7 @@ function FocusChart({ focusLog = [], dark }) {
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-neutral-700 dark:bg-[#161616]">
+    <div className="glass-strong rounded-xl px-3 py-2 text-sm shadow-lg">
       <p className="font-semibold text-neutral-900 dark:text-white">{label}</p>
       <p className="text-neutral-500 dark:text-neutral-400">{payload[0].value}% completed</p>
     </div>
@@ -160,7 +160,7 @@ function GoalProgressCard({ goal, ctx }) {
 
   return (
     <div
-      className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-[#151515]"
+      className="glass relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-[#151515]"
       style={{ borderLeftWidth: '5px', borderLeftColor: goal.color }}
     >
       {isAtRisk && (
@@ -562,7 +562,7 @@ export default function InsightsView({
               <ActivityChart habits={habits} completions={completions} dark={dark} />
 
               {/* per-habit rates */}
-              <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+              <section className="glass rounded-3xl p-6">
                 <div className="mb-4 flex items-center gap-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
                     <svg className="h-4 w-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -586,7 +586,7 @@ export default function InsightsView({
           )}
 
           {habitTab === "heatmap" && (
-            <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+            <section className="glass rounded-3xl p-6">
               <div className="mb-5 flex items-center gap-2.5">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
                   <svg className="h-4 w-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -613,7 +613,7 @@ export default function InsightsView({
       )}
 
       {activeSubTab === 'goals' && goals.length > 0 && (
-        <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+        <section className="glass rounded-3xl p-6">
           <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4 mb-5">
             <div>
               <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Goal statistics</h3>
@@ -736,7 +736,7 @@ export default function InsightsView({
 
           {/* Focus session history */}
           {appData?.focusLog?.length > 0 && (
-            <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+            <section className="glass rounded-3xl p-6">
               <div className="mb-4 flex items-center gap-2.5">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
                   <svg className="h-4 w-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>

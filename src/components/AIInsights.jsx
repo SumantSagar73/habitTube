@@ -22,7 +22,7 @@ export default function AIInsights({ enabled, model, cached, habits, completions
   if (!enabled) return null
 
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">
           <span className="flex h-6 w-6 items-center justify-center rounded-md bg-neutral-900 text-[11px] font-bold text-white dark:bg-white dark:text-neutral-900">AI</span>

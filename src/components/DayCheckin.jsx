@@ -53,7 +53,7 @@ export default function DayCheckin({ data, onSave }) {
   const toggle = (b) => setBlockers((l) => (l.includes(b) ? l.filter((x) => x !== b) : [...l, b]))
 
   return (
-    <section className="mb-6 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <section className="mb-6 glass rounded-2xl p-4">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">Check-in · 30 seconds</p>
       <p className="mt-2 font-bold text-neutral-900 dark:text-white">Did today match the plan?</p>
       <div className="mt-2 flex flex-wrap gap-2">

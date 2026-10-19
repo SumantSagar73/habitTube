@@ -11,6 +11,7 @@ import HabitCard from './HabitCard'
 import { PriorityDot, PrioritySelect } from './Priority'
 import ProgressRing from './ProgressRing'
 import Select from './Select'
+import TodayHero from './TodayHero'
 
 function accountabilityMessage(pendingHabits, doneHabits, totalHabits, pendingTasks, doneTasks, totalTasks, hour) {
   const total = totalHabits + totalTasks
@@ -87,6 +88,8 @@ export default function TodayView({
   onDeleteTask,
   onAddRecurring,
   onDeleteRecurring,
+  name,
+  afterCoach,
   aiEnabled,
   aiModel,
   motivation,
@@ -175,9 +178,31 @@ export default function TodayView({
   return (
     <div className="space-y-6">
       <Confetti active={confetti} />
+      <TodayHero
+        name={name}
+        focusMinutesToday={focusMinutesToday}
+        focusRunning={!!focus?.running}
+        habitsDone={doneCount}
+        habitsTotal={activeDue.length}
+        tasksDone={doneTasksCount}
+        tasksTotal={totalTasksCount}
+        focusLog={focusLog}
+      />
+      <AICoach
+        enabled={aiEnabled}
+        model={aiModel}
+        motivation={motivation}
+        habits={habits}
+        completions={completions}
+        tasks={tasks}
+        goals={goals}
+        onSave={onSaveMotivation}
+        onOpenCoach={onOpenCoach}
+      />
+      {afterCoach}
       {/* yesterday's misses — demand a reason (full-width banner at top) */}
       {yMissed.length > 0 && !missesHidden && (
-        <section className="rounded-3xl border-2 border-neutral-900 p-6 dark:border-white dark:bg-[#111]">
+        <section className="glass rounded-3xl p-6 ring-1 ring-[var(--accent)]/50">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-extrabold tracking-tight text-neutral-900 dark:text-white">
               You missed {yMissed.length} habit{yMissed.length > 1 ? 's' : ''} yesterday. Why?
@@ -351,7 +376,7 @@ export default function TodayView({
           />
 
           {/* Daily journal + mood */}
-          <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+          <section className="glass rounded-3xl p-6">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
               Today's journal
             </h3>
@@ -369,7 +394,7 @@ export default function TodayView({
         {/* Right Column: Progress ring, Focus Timer, AI Coach, Quote widget (span 4) */}
         <div className="space-y-6 lg:col-span-4">
           {/* Today's progress */}
-          <section className="flex flex-col items-center gap-5 rounded-3xl border border-neutral-200 p-6 text-center dark:border-neutral-800 dark:bg-[#111]">
+          <section className="glass flex flex-col items-center gap-5 rounded-3xl p-6 text-center">
             <div className="flex flex-wrap items-center gap-6 justify-center">
               <div className="flex flex-col items-center gap-2">
                 <ProgressRing done={doneCount} total={activeDue.length} size={100} />
@@ -411,19 +436,6 @@ export default function TodayView({
             onAddBlockDomain={onAddBlockDomain}
             onRemoveBlockDomain={onRemoveBlockDomain}
             blockerInstalled={blockerInstalled}
-          />
-
-          {/* AI Coach */}
-          <AICoach
-            enabled={aiEnabled}
-            model={aiModel}
-            motivation={motivation}
-            habits={habits}
-            completions={completions}
-            tasks={tasks}
-            goals={goals}
-            onSave={onSaveMotivation}
-            onOpenCoach={onOpenCoach}
           />
 
           {/* Quote of the day */}
@@ -524,7 +536,7 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
   }
 
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500 shrink-0">

@@ -190,7 +190,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
 
   // ── Normal card ──────────────────────────────────────────────────────────────
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
           ⏱️ Focus

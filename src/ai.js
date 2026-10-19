@@ -1,7 +1,7 @@
 import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from './planUtils'
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
-import { normalizeArcPlan, normalizeWeekPlan } from './arcs'
+import { arcDay, normalizeArcPlan, normalizeWeekPlan } from './arcs'
 import { byokRequest, getByok } from './byok'
 
 export const DEFAULT_MODEL = 'openai/gpt-oss-120b'
@@ -358,7 +358,7 @@ UPDATES — adjust existing items (user still confirms):
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
 
-export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {}, dayCheckins = {} }) {
+export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {}, dayCheckins = {}, arcs = [] }) {
   const ctx = { goals, tasks, habits, completions }
   const key = todayKey()
   const byId = Object.fromEntries(goals.map((g) => [g.id, g]))
@@ -411,6 +411,14 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
         .join('; ')}.`
     : ''
 
+  const arcLines = arcs
+    .filter((a) => a.status === 'active')
+    .map((a) => {
+      const { day, total, weekIdx } = arcDay(a)
+      const wk = a.weeks?.[weekIdx] || {}
+      return `"${a.title}" day ${day}/${total}, week ${weekIdx + 1}: ${wk.theme || ''}${wk.milestone ? ` (${wk.milestone})` : ''}${a.minDay ? `; minimum day: ${a.minDay}` : ''}`
+    })
+
   const lastReview = Object.entries(reviews)
     .filter(([, r]) => r?.note)
     .sort((a, b) => (b[1].ratedAt || 0) - (a[1].ratedAt || 0))[0]
@@ -433,6 +441,7 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
     taskLine,
     reasons.length ? `Recent reasons for skipping: ${reasons.slice(0, 10).join(' / ')}.` : 'No skip reasons logged.',
     notesLine,
+    arcLines.length ? `Active arcs: ${arcLines.join(' | ')}.` : '',
     checkinLine,
     lastReview ? `Most recent review note: "${lastReview[1].note}".` : '',
   ].filter(Boolean).join('\n')

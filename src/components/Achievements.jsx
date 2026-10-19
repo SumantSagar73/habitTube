@@ -6,7 +6,7 @@ export default function Achievements({ data }) {
   const earned = badges.filter((b) => b.earned).length
 
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       {/* level bar */}
       <div className="mb-5 flex items-center gap-4">
         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">

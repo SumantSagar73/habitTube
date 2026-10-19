@@ -219,7 +219,7 @@ export default function SettingsModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="animate-fade-up w-full max-w-md overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]" style={{ maxHeight: '90dvh' }}>
+      <div className="animate-fade-up w-full max-w-md overflow-y-auto glass-strong rounded-3xl p-7 shadow-2xl" style={{ maxHeight: '90dvh' }}>
         <div className="mb-6 flex items-start justify-between">
           <h2 className="text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Settings</h2>
           <button
@@ -233,7 +233,7 @@ export default function SettingsModal({
         </div>
 
         {/* AI toggle */}
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="flex items-center justify-between gap-4 glass rounded-2xl p-4">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">AI coach</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">Daily motivation, insights & reviews</p>
@@ -281,7 +281,7 @@ export default function SettingsModal({
         {aiEnabled && <ByokSettings />}
 
         {/* reminders toggle */}
-        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-4 flex items-center justify-between gap-4 glass rounded-2xl p-4">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">Daily reminders</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -297,7 +297,7 @@ export default function SettingsModal({
         </div>
 
         {/* sound toggle */}
-        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-4 flex items-center justify-between gap-4 glass rounded-2xl p-4">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">Sound effects</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -311,7 +311,7 @@ export default function SettingsModal({
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${soundEnabled ? 'left-6' : 'left-1'}`} />
           </button>
         </div>
-        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-4 flex items-center justify-between gap-4 glass rounded-2xl p-4">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">Arc nudges</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -371,7 +371,7 @@ export default function SettingsModal({
         <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
           Public profile
         </label>
-        <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800 space-y-3">
+        <div className="glass rounded-2xl p-4 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="font-bold text-neutral-900 dark:text-white">Share my progress</p>
@@ -401,7 +401,7 @@ export default function SettingsModal({
         <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
           Synchronization
         </label>
-        <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="glass rounded-2xl p-4">
           <p className="font-bold text-neutral-900 dark:text-white">Account sync</p>
           <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
             {userId
@@ -469,7 +469,7 @@ export default function SettingsModal({
             <label className="mt-6 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
               Restore a previous version
             </label>
-            <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="glass rounded-2xl p-4">
               <p className="mb-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">
                 Automatic daily backups of your account. Pick a date to roll back to — your current data is snapshotted first, so it's undoable.
               </p>

@@ -120,7 +120,7 @@ const STARTERS = [
   'Help me plan a realistic week.',
 ]
 
-export default function CoachChat({ enabled, model, data, chatSessions, activeChatId, onSetChatSessions, onSetActiveChatId, onApplyPlan }) {
+export default function CoachChat({ enabled, model, data, chatSessions, activeChatId, onSetChatSessions, onSetActiveChatId, onApplyPlan, seed = '', onSeedUsed }) {
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -134,6 +134,14 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, streaming])
+
+  // A one-tap prompt from Today starts a fresh chat with the question already asked.
+  useEffect(() => {
+    if (!seed || !enabled) return
+    onSeedUsed?.()
+    send(seed, { fresh: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed])
 
   // Reset input error on session switch
   const [seenChatId, setSeenChatId] = useState(activeChatId)
@@ -170,13 +178,13 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
     })
   }
 
-  async function send(text) {
+  async function send(text, { fresh = false } = {}) {
     const content = text.trim()
     if (!content || busy) return
     setInput('')
     setError('')
 
-    let sessionId = activeChatId
+    let sessionId = fresh ? null : activeChatId
     const sessionExists = chatSessions.find((s) => s.id === sessionId)
 
     if (!sessionId || !sessionExists) {
@@ -350,7 +358,7 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
               {messages.map((m, i) =>
                 m.role === 'user' ? (
                   <div key={i} className="flex justify-end">
-                    <div className="max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+                    <div className="glass max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white dark: dark:text-neutral-900">
                       {m.content}
                     </div>
                   </div>

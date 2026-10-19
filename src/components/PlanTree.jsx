@@ -285,7 +285,7 @@ export default function PlanTree({ goals, ctx, onEdit, onDelete, onUpdate, onAdd
   return (
     <div className="space-y-4">
       {/* Header controls bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-white p-3.5 dark:border-neutral-800 dark:bg-[#111]">
+      <div className="glass flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3.5">
         
         {/* Search Input */}
         <div className="relative flex-1 min-w-[200px]">
@@ -345,7 +345,7 @@ export default function PlanTree({ goals, ctx, onEdit, onDelete, onUpdate, onAdd
       </div>
 
       {/* Roots container */}
-      <section className="rounded-3xl border border-neutral-200 bg-white px-3 py-3.5 dark:border-neutral-800 dark:bg-[#111] sm:px-5">
+      <section className="glass rounded-3xl border px-3 py-3.5 sm:px-5">
         {roots.length === 0 ? (
           <div className="py-12 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">

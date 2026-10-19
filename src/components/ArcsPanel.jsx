@@ -40,7 +40,7 @@ export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, 
           const nextWeek = pendingWeek(a)
           const review = needsReview(a)
           return (
-            <div key={a.id} className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <div key={a.id} className="glass rounded-2xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-bold text-neutral-900 dark:text-white">{a.title}</p>

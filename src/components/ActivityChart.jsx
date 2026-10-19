@@ -20,7 +20,7 @@ const RANGES = [
 function ChartTooltip({ active, payload, label, yearly }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-neutral-700 dark:bg-[#161616]">
+    <div className="glass-strong rounded-xl px-3 py-2 text-sm shadow-lg">
       <p className="font-semibold text-neutral-900 dark:text-white">{label}</p>
       <p className="text-neutral-500 dark:text-neutral-400">
         {payload[0].value} habit{payload[0].value === 1 ? '' : 's'} {yearly ? 'per day (avg)' : 'completed'}
@@ -65,7 +65,7 @@ export default function ActivityChart({ habits, completions, dark }) {
     'rounded-xl border border-neutral-200 bg-transparent px-3 py-1.5 text-xs font-semibold text-neutral-800 outline-none transition focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:focus:border-white dark:[color-scheme:dark]'
 
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Activity</h3>

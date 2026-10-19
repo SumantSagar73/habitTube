@@ -61,7 +61,7 @@ export default function ByokSettings() {
   const active = cfg.enabled && cfg.key.trim() && cfg.model.trim()
 
   return (
-    <div className="mt-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="mt-4 glass rounded-2xl p-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-bold text-neutral-900 dark:text-white">Use my own AI key</p>

@@ -27,11 +27,7 @@ export default function HabitCard({ habit, done, completions, onToggle, overdue,
     <div className="group relative">
       <button
         onClick={onToggle}
-        className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-200 ${
-          done || skipped
-            ? 'border-neutral-100 bg-neutral-50 opacity-60 dark:border-neutral-900 dark:bg-neutral-900/60'
-            : 'border-neutral-200 bg-white hover:border-neutral-400 dark:border-neutral-800 dark:bg-[#111] dark:hover:border-neutral-600'
-        }`}
+        className={`glass flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-200 ${ done || skipped ? 'border-neutral-100 bg-neutral-50 opacity-60 dark:border-neutral-900 dark:bg-neutral-900/60' : ' hover:border-neutral-400 dark:hover:border-neutral-600' }`}
       >
         {/* checkbox */}
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${

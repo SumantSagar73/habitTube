@@ -9,7 +9,7 @@ const STEPS = [
 export default function PlanIntro({ onUseTemplate, onAddGoal }) {
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-neutral-200 p-7 dark:border-neutral-800 dark:bg-[#111]">
+      <section className="glass rounded-3xl border p-7">
         <h2 className="text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
           Turn a big goal into daily moves
         </h2>
@@ -20,7 +20,7 @@ export default function PlanIntro({ onUseTemplate, onAddGoal }) {
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {STEPS.map((s) => (
-            <div key={s.n} className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <div key={s.n} className="glass rounded-2xl p-4">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900 text-sm font-bold text-white dark:bg-white dark:text-neutral-900">
                 {s.n}
               </span>
@@ -50,7 +50,7 @@ export default function PlanIntro({ onUseTemplate, onAddGoal }) {
             <button
               key={t.key}
               onClick={() => onUseTemplate(t)}
-              className="rounded-2xl border border-neutral-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-neutral-400 dark:border-neutral-800 dark:bg-[#111] dark:hover:border-neutral-600"
+              className="glass rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:border-neutral-400 dark:hover:border-neutral-600"
             >
               <span className="text-3xl">{t.emoji}</span>
               <p className="mt-3 font-bold text-neutral-900 dark:text-white">{t.name}</p>

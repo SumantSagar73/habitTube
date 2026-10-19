@@ -23,7 +23,7 @@ export default defineConfig([
   },
   // Node-side files: Vite config, migration script, Vercel edge function
   {
-    files: ['vite.config.js', 'migrate.js', 'api/**/*.js'],
+    files: ['vite.config.js', 'playwright.config.js', 'migrate.js', 'api/**/*.js', 'tests/**/*.js'],
     languageOptions: { globals: { ...globals.node } },
   },
   // Browser extension (service worker + pages)

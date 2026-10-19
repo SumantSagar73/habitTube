@@ -8,10 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev       # Start dev server (required for AI features — Groq proxy only runs here)
 npm run build     # Production build
 npm run lint      # ESLint
+npm run test:e2e  # Playwright e2e (system Edge by default; PW_CHANNEL=chrome or empty to change)
 node migrate.js   # Legacy one-off: copies old local MongoDB states into Supabase (not needed for new setups)
 ```
 
-There are no automated tests.
+Playwright e2e tests live in `tests/e2e` (`npm run test:e2e`); Supabase and the AI are mocked, see `tests/e2e/helpers.js`.
 
 ## Architecture
 
@@ -57,7 +58,7 @@ Timer state (`focus`) lives entirely in `App.jsx` as local React state (not pers
 
 ### Design system
 
-Tailwind CSS 4 with dark mode via the `dark` class on `<html>`. The app is intentionally **monochrome** — `neutral-900/white` primary, no colorful gradients. `palette.js` exports `GOAL_COLORS` (the only accent colors, used for goal nodes in the plan tree).
+Tailwind CSS 4, dark mode via the `dark` class on `<html>`. **Monochrome frosted glass**: white/black only, no accent hue. `index.css` defines (inside `@layer components`, so utilities like `border-neutral-900` can still override) `.glass` (frosted cards: translucent fill + backdrop blur), `.glass-strong` (modals, popovers, tooltips), `.glass-bar` (bottom nav), `.glow-mono` (the one high-contrast hero card) and `.app-bg` (fixed ambient glows behind the glass so the blur has something to frost). `var(--accent)` is just neutral-900/neutral-100. Primary buttons stay `neutral-900/white`. For new cards use `glass rounded-2xl p-4` instead of border + bg classes. `palette.js` `GOAL_COLORS` are the only colours (goal nodes). Today is built around `TodayHero` + `AICoach` (coach strip with one-tap openers that start a seeded chat).
 
 ## Environment variables
 

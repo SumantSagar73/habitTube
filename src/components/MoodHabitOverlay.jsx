@@ -28,7 +28,7 @@ export default function MoodHabitOverlay({ habits, completions, moods, dark }) {
   const strokeMood = dark ? '#737373' : '#a3a3a3'
 
   return (
-    <section className="rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+    <section className="glass rounded-3xl p-6">
       <div className="mb-4 flex items-center gap-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800">
           <svg className="h-4 w-4 text-neutral-600 dark:text-neutral-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -48,7 +48,7 @@ export default function MoodHabitOverlay({ habits, completions, moods, dark }) {
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null
                 return (
-                  <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs shadow-lg dark:border-neutral-700 dark:bg-[#161616]">
+                  <div className="glass-strong rounded-xl px-3 py-2 text-xs shadow-lg">
                     <p className="mb-1 font-semibold text-neutral-900 dark:text-white">{label}</p>
                     {payload.map((p) => (
                       <p key={p.dataKey} style={{ color: p.stroke }}>

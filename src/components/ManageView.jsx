@@ -100,7 +100,7 @@ export default function ManageView({ habits, completions, onOpen, onEdit, onDele
             onDragOver={(e) => handleDragOver(e, h.id)}
             onDrop={handleDrop}
             onClick={() => onOpen(h)}
-            className="flex cursor-pointer flex-wrap items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-400 dark:border-neutral-800 dark:bg-[#111] dark:hover:border-neutral-600"
+            className="glass flex cursor-pointer flex-wrap items-center gap-4 rounded-2xl border p-4 transition hover:border-neutral-400 dark:hover:border-neutral-600"
           >
             {/* drag handle */}
             <span

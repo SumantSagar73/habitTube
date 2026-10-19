@@ -16,7 +16,7 @@ export default function HabitGrid({ habits, completions, onToggleOn }) {
   ].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
 
   return (
-    <div className="rounded-3xl border border-neutral-200 p-4 dark:border-neutral-800 dark:bg-[#111] sm:p-5">
+    <div className="glass rounded-3xl p-4 sm:p-5">
       {/* window navigation */}
       <div className="mb-4 flex items-center justify-between gap-3 px-1">
         <p className="text-sm font-bold text-neutral-900 dark:text-white">{rangeLabel}</p>

@@ -52,6 +52,13 @@ const TABS = [
   { id: 'coach', label: 'Coach' },
 ]
 
+// Friendly first name: profile name if set, else the email prefix without digits.
+function displayName(user) {
+  const raw = user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email || '').split('@')[0]
+  const first = String(raw).replace(/[0-9_.]+/g, ' ').trim().split(' ')[0]
+  return first ? first[0].toUpperCase() + first.slice(1) : ''
+}
+
 export default function App() {
   const [data, setData] = useStore()
   const [tab, setTab] = useState('today')
@@ -64,6 +71,7 @@ export default function App() {
   const [checkinArcId, setCheckinArcId] = useState(null)
   const [reviewArcId, setReviewArcId] = useState(null)
   const [arcSeed, setArcSeed] = useState('')
+  const [coachSeed, setCoachSeed] = useState('')
   const [settings, setSettings] = useState(false)
   const [focus, setFocus] = useState(() => {
     try {
@@ -761,7 +769,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white text-neutral-900 transition-colors duration-300 dark:bg-[#0a0a0a] dark:text-white">
+    <div className="app-bg min-h-screen overflow-x-hidden bg-white text-neutral-900 transition-colors duration-300 dark:bg-[#0a0a0a] dark:text-white">
       <div className="mx-auto w-full max-w-[1440px] px-4 pb-28 sm:px-8 md:pb-20" style={{ paddingBottom: 'max(7rem, calc(7rem + env(safe-area-inset-bottom)))' }}>
         {/* header */}
         <header className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-200 py-6 dark:border-neutral-800 ${timerFs ? 'hidden' : ''}`}>
@@ -836,7 +844,7 @@ export default function App() {
               {newMenu && (
                 <>
                   <button className="fixed inset-0 z-10 cursor-default" onClick={() => setNewMenu(false)} aria-hidden />
-                  <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-1 shadow-xl dark:border-neutral-800 dark:bg-[#161616]">
+                  <div className="glass-strong absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-2xl border p-1 shadow-xl">
                     <button
                       onClick={() => {
                         setNewMenu(false)
@@ -944,11 +952,8 @@ export default function App() {
 
         <main className="animate-fade-up" key={tab}>
           <Suspense fallback={viewFallback}>
-          {(tab === 'today' || tab === 'plan') && !timerFs && (
-            <ArcsPanel data={data} compact={tab === 'today'} onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
-          )}
-          {tab === 'today' && !timerFs && (
-            <DayCheckin data={data} onSave={(k, entry) => setData((d) => ({ ...d, dayCheckins: { ...(d.dayCheckins || {}), [k]: entry } }))} />
+          {tab === 'plan' && !timerFs && (
+            <ArcsPanel data={data} onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
           )}
           {tab === 'today' && (
             <TodayView
@@ -986,7 +991,16 @@ export default function App() {
               aiModel={data.aiModel}
               motivation={data.ai.motivation}
               onSaveMotivation={setMotivation}
-              onOpenCoach={() => setTab('coach')}
+              name={displayName(user)}
+              afterCoach={
+                !timerFs && (
+                  <>
+                    <ArcsPanel data={data} compact onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
+                    <DayCheckin data={data} onSave={(k, entry) => setData((d) => ({ ...d, dayCheckins: { ...(d.dayCheckins || {}), [k]: entry } }))} />
+                  </>
+                )
+              }
+              onOpenCoach={(prompt) => { setCoachSeed(typeof prompt === 'string' ? prompt : ''); setTab('coach') }}
               onAddRecurring={addRecurringTask}
               onDeleteRecurring={deleteRecurringTask}
               focus={focus}
@@ -1086,6 +1100,8 @@ export default function App() {
               onSetChatSessions={setChatSessions}
               onSetActiveChatId={setActiveChatId}
               onApplyPlan={applyPlan}
+              seed={coachSeed}
+              onSeedUsed={() => setCoachSeed('')}
             />
           )}
         </Suspense>
@@ -1098,7 +1114,7 @@ export default function App() {
 
       {/* Mobile bottom nav */}
       {!timerFs && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden border-t border-neutral-200 bg-white dark:border-neutral-800 dark:bg-[#0a0a0a]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden glass-bar border-t" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {[
             { id: 'today', label: 'Today', icon: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /> },
             { id: 'plan', label: 'Plan', icon: <><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" /></> },
@@ -1253,7 +1269,7 @@ export default function App() {
 function WeeklyReviewBanner({ onOpen, onDismiss }) {
   return (
     <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 px-4 md:bottom-6">
-      <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-3.5 shadow-xl dark:border-neutral-700 dark:bg-[#161616]">
+      <div className="glass-strong flex items-center gap-3 rounded-2xl border px-5 py-3.5 shadow-xl">
         <svg className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M8 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
         <div>
           <p className="text-sm font-bold text-neutral-900 dark:text-white">Time for your weekly review</p>

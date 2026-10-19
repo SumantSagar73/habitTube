@@ -18,7 +18,7 @@ function Bar({ pct, label }) {
 
 function StatCard({ value, label }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 p-5 dark:border-neutral-800 dark:bg-[#111]">
+    <div className="glass flex flex-col items-center justify-center rounded-2xl border p-5">
       <span className="text-3xl font-extrabold tabular-nums text-neutral-900 dark:text-white">{value}</span>
       <span className="mt-1 text-xs font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">{label}</span>
     </div>
@@ -109,7 +109,7 @@ export default function PublicProfile({ userId, onBack }) {
 
         {/* Top habits */}
         {topHabits.length > 0 && (
-          <section className="mb-8 rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+          <section className="mb-8 glass rounded-3xl p-6">
             <h2 className="mb-5 text-xs font-bold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Habits</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {topHabits.map((h) => (
@@ -129,7 +129,7 @@ export default function PublicProfile({ userId, onBack }) {
 
         {/* Goals */}
         {topGoals.length > 0 && (
-          <section className="mb-8 rounded-3xl border border-neutral-200 p-6 dark:border-neutral-800 dark:bg-[#111]">
+          <section className="mb-8 glass rounded-3xl p-6">
             <h2 className="mb-5 text-xs font-bold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Goals</h2>
             <div className="space-y-4">
               {topGoals.map((g) => {

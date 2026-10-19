@@ -37,7 +37,7 @@ export default function HabitDetail({ habit, completions, missNotes, dark, onMis
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="animate-fade-up max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]">
+      <div className="animate-fade-up max-h-[88vh] w-full max-w-3xl overflow-y-auto glass-strong rounded-3xl p-7 shadow-2xl">
         {/* header */}
         <div className="mb-6 flex items-start gap-4">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-3xl dark:bg-neutral-800">

@@ -29,7 +29,7 @@ export default function PWABanner() {
 
   return (
     <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 px-4 md:bottom-6">
-      <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-xl dark:border-neutral-700 dark:bg-[#161616]">
+      <div className="glass-strong flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl">
         <svg className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/><path d="M12 6v6l3 3"/></svg>
         <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
           Install HabitTube for offline access

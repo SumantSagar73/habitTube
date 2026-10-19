@@ -14,7 +14,7 @@ export default function GoalCard({ goal, ctx, parentTitle, onUpdate, onEdit, onD
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-[#111]">
+    <div className="glass rounded-2xl border p-4">
       <div className="flex items-start gap-3">
         <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: goal.color }} />
         <div className="min-w-0 flex-1">

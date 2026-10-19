@@ -58,7 +58,7 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
           Before starting a new arc, deal with the one that has gone quiet:
         </p>
         {stale.map((a) => (
-          <div key={a.id} className="mb-3 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div key={a.id} className="mb-3 glass rounded-2xl p-4">
             <p className="font-bold text-neutral-900 dark:text-white">{a.title}</p>
             <p className="mb-3 text-sm text-neutral-400 dark:text-neutral-500">No activity for {staleDays(a, data)} days.</p>
             <div className="flex flex-wrap gap-2">
@@ -77,7 +77,7 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
           You already have {MAX_ACTIVE_ARCS} active arcs. Pause or close one to start another.
         </p>
         {active.map((a) => (
-          <div key={a.id} className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div key={a.id} className="mb-3 flex items-center justify-between gap-3 glass rounded-2xl p-4">
             <p className="font-bold text-neutral-900 dark:text-white">{a.title}</p>
             <div className="flex gap-2">
               <button className={ghostBtn} onClick={() => onResolveArc(a.id, 'pause')}>Pause</button>
@@ -212,7 +212,7 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-neutral-900 dark:text-white">Start an arc</h2>
           <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close">✕</button>

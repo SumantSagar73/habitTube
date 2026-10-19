@@ -64,7 +64,7 @@ export default function HabitTemplates({ existingHabits, onInstall, onClose }) {
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="animate-fade-up w-full max-w-lg overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]"
+        className="animate-fade-up w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-7 shadow-2xl"
         style={{ maxHeight: '85dvh' }}
       >
         <div className="mb-6 flex items-start justify-between gap-3">

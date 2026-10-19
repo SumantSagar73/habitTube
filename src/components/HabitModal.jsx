@@ -30,7 +30,7 @@ export default function HabitModal({ initial, habits = [], onSave, onClose }) {
     >
       <form
         onSubmit={submit}
-        className="animate-fade-up w-full max-w-md overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]"
+        className="animate-fade-up w-full max-w-md overflow-y-auto glass-strong rounded-3xl p-7 shadow-2xl"
         style={{ maxHeight: '90dvh' }}
       >
         <h2 className="mb-6 text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">

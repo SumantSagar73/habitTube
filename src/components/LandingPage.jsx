@@ -94,7 +94,7 @@ export default function LandingPage({ onOpenAuth }) {
             Try it now — no account needed
           </p>
 
-          <div className="rounded-3xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-[#111]">
+          <div className="glass rounded-3xl border p-8 shadow-sm">
             {/* Session dots */}
             {sessions > 0 && (
               <div className="mb-4 flex items-center justify-center gap-1.5">

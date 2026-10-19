@@ -27,7 +27,7 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
   const tasks = items.filter((i) => i.kind === 'task')
   const updates = items.filter((i) => i.kind === 'update')
   return (
-    <div className="mt-2 max-w-[90%] rounded-2xl border border-neutral-200 p-3.5 dark:border-neutral-800">
+    <div className="mt-2 max-w-[90%] glass rounded-2xl p-3.5">
       <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
         Proposed plan · {items.length} item{items.length > 1 ? 's' : ''}
       </p>
@@ -273,7 +273,7 @@ export default function CoachWidget({ enabled, model, data, messages, onSetMessa
                 {messages.map((m, i) =>
                   m.role === 'user' ? (
                     <div key={i} className="flex justify-end">
-                      <div className="max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-3.5 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+                      <div className="glass max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-3.5 py-2.5 text-sm font-medium text-white dark: dark:text-neutral-900">
                         {m.content}
                       </div>
                     </div>

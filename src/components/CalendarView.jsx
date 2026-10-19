@@ -44,7 +44,7 @@ export default function CalendarView({ habits = [], completions, tasks, moods, g
   }
 
   return (
-    <div className="rounded-3xl border border-neutral-200 p-4 dark:border-neutral-800 dark:bg-[#111] sm:p-6">
+    <div className="glass rounded-3xl p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
           {view === 'month' ? `${MONTHS[month]} ${year}` : 'Day plan'}

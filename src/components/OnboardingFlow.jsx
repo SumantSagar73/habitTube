@@ -47,7 +47,7 @@ export default function OnboardingFlow({ onComplete, onOpenHabit, onOpenGoal }) 
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="animate-fade-up w-full max-w-sm rounded-3xl border border-neutral-200 bg-white p-8 shadow-2xl dark:border-neutral-800 dark:bg-[#111]">
+      <div className="glass-strong animate-fade-up w-full max-w-sm rounded-3xl border p-8 shadow-2xl">
         {/* progress dots */}
         <div className="mb-7 flex justify-center gap-2">
           {STEPS.map((_, i) => (

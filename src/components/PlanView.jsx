@@ -79,7 +79,7 @@ function PeriodCard({ label, sub, pct, health, active, onClick }) {
       onClick={onClick}
       className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
         active ? 'border-neutral-900 dark:border-white' : 'border-neutral-200 hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600'
-      } bg-white dark:bg-[#111]`}
+      } glass`}
     >
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-bold text-neutral-900 dark:text-white">{label}</span>
@@ -360,7 +360,7 @@ export default function PlanView({
       {showNudge && (
         <button
           onClick={() => setReview({ level: 'week', period: prevWeek })}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-neutral-900 p-4 text-left transition hover:bg-neutral-50 dark:border-white dark:bg-[#111] dark:hover:bg-neutral-900"
+          className="glass flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-neutral-900 p-4 text-left transition hover:bg-neutral-50 dark:border-white dark:hover:bg-neutral-900"
         >
           <span>
             <span className="block font-bold text-neutral-900 dark:text-white">Your weekly review is ready</span>
@@ -514,7 +514,7 @@ export default function PlanView({
             {/* LEFT sidebar (period progress, child period cards, carry-forward) — order-1 so it appears left on desktop */}
             <div className="space-y-5 lg:col-span-4 lg:order-1">
               {/* Period progress card */}
-              <section className="rounded-3xl border border-neutral-200 p-5 dark:border-neutral-800 dark:bg-[#111]">
+              <section className="glass rounded-3xl border p-5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">{LEVEL_LABEL[level]}</p>
                 <h2 className="mt-0.5 text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">{periodLabel(level, key)}</h2>
                 <div className="mt-3 flex items-end justify-between gap-3">
@@ -641,7 +641,7 @@ function WeekBoard({ week, tasks, linkGoals, habits = [], onAddTask, onToggleTas
                 isOver
                   ? 'border-neutral-900 ring-2 ring-neutral-900/10 dark:border-white dark:ring-white/10'
                   : dk === today ? 'border-neutral-900 dark:border-white' : 'border-neutral-200 dark:border-neutral-800'
-              } bg-white dark:bg-[#111]`}
+              } glass`}
             >
               <p className="mb-2 text-sm font-bold text-neutral-900 dark:text-white">
                 {formatNice(dk)} {dk === today && <span className="text-neutral-400">· today</span>}

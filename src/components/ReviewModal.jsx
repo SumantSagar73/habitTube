@@ -86,7 +86,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="animate-fade-up max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-7 shadow-2xl dark:border-neutral-800 dark:bg-[#111]">
+      <div className="animate-fade-up max-h-[88vh] w-full max-w-2xl overflow-y-auto glass-strong rounded-3xl p-7 shadow-2xl">
         <div className="mb-1 flex items-start justify-between gap-3">
           <h2 className="text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
             {LEVEL_LABEL[level]} review
@@ -116,7 +116,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
               const pct = goalPercent(g, ctx)
               const hit = pct >= 100
               return (
-                <div key={g.id} className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+                <div key={g.id} className="glass rounded-2xl p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate font-bold text-neutral-900 dark:text-white">{g.title}</p>
                     <span className={`shrink-0 text-sm font-extrabold tabular-nums ${hit ? 'text-neutral-900 dark:text-white' : 'text-neutral-400'}`}>
@@ -157,7 +157,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
         ) : (
           <div className="mb-6 space-y-2">
             {unfinished.map((t) => (
-              <div key={t.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-neutral-200 p-3.5 dark:border-neutral-800">
+              <div key={t.id} className="flex flex-wrap items-center gap-3 glass rounded-2xl p-3.5">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">{t.title}</span>
                   <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500">{formatNice(t.date)}</span>
@@ -175,7 +175,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
 
         {/* AI summary */}
         {aiEnabled && (
-          <div className="mb-6 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="mb-6 glass rounded-2xl p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
                 <span className="flex h-5 w-5 items-center justify-center rounded-md bg-neutral-900 text-[10px] text-white dark:bg-white dark:text-neutral-900">AI</span>
