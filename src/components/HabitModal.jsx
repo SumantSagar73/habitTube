@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { EMOJIS } from '../palette'
+import { HabitIcon, ICON_KEYS, toIconKey } from '../icons'
 import { WEEKDAYS } from '../utils'
 
 export default function HabitModal({ initial, habits = [], onSave, onClose }) {
   const [name, setName] = useState(initial?.name || '')
-  const [emoji, setEmoji] = useState(initial?.emoji || '💪')
+  const [emoji, setEmoji] = useState(initial?.emoji || 'dumbbell')
   const [days, setDays] = useState(initial?.days || [0, 1, 2, 3, 4, 5, 6])
   const [time, setTime] = useState(initial?.time || '')
   const [stackAfter, setStackAfter] = useState(initial?.stackAfter || '')
@@ -48,16 +48,17 @@ export default function HabitModal({ initial, habits = [], onSave, onClose }) {
 
         <label className={labelCls}>Icon</label>
         <div className="mb-5 grid grid-cols-8 gap-1.5">
-          {EMOJIS.map((e) => (
+          {ICON_KEYS.map((k) => (
             <button
-              key={e}
+              key={k}
               type="button"
-              onClick={() => setEmoji(e)}
-              className={`rounded-lg p-1.5 text-xl transition hover:bg-neutral-100 dark:hover:bg-neutral-800 ${
-                emoji === e ? 'bg-neutral-100 ring-2 ring-neutral-900 dark:bg-neutral-800 dark:ring-white' : ''
+              onClick={() => setEmoji(k)}
+              title={k}
+              className={`flex items-center justify-center rounded-lg p-2 text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 ${
+                toIconKey(emoji) === k ? 'bg-neutral-100 ring-2 ring-neutral-900 dark:bg-neutral-800 dark:ring-white' : ''
               }`}
             >
-              {e}
+              <HabitIcon value={k} className="h-5 w-5" />
             </button>
           ))}
         </div>
@@ -102,7 +103,7 @@ export default function HabitModal({ initial, habits = [], onSave, onClose }) {
             >
               <option value="">None</option>
               {habits.filter((h) => h.id !== initial?.id).map((h) => (
-                <option key={h.id} value={h.id}>{h.emoji} {h.name}</option>
+                <option key={h.id} value={h.id}>{h.name}</option>
               ))}
             </select>
           </>

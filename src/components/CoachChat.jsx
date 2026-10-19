@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check } from 'lucide-react'
+import { HabitIcon } from '../icons'
 import { aiChatStream, aiCoachReply, buildCoachContext, parseProposal } from '../ai'
 import { uid } from '../utils'
 import AIText from './AIText'
@@ -64,7 +66,7 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
               Habit
             </span>
             <span className="flex-1 text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-              {h.emoji && <span className="mr-1">{h.emoji}</span>}{h.name}
+              <HabitIcon value={h.emoji} className="mr-1 inline h-4 w-4 align-[-2px]" />{h.name}
             </span>
             <span className="shrink-0 text-xs font-medium text-neutral-400 dark:text-neutral-500">
               {Array.isArray(h.days) ? h.days.map((d) => DAY_ABBR[d]).join(' ') : 'daily'}{h.time ? ` · ${h.time}` : ''}
@@ -93,7 +95,7 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
         ))}
       </div>
       {applied ? (
-        <p className="mt-3 text-sm font-bold text-neutral-900 dark:text-white">✓ Added to your plan — see the Plan tab.</p>
+        <p className="mt-3 text-sm font-bold text-neutral-900 dark:text-white"><Check className="mr-1 inline h-4 w-4 align-[-2px]" />Added to your plan — see the Plan tab.</p>
       ) : dismissed ? (
         <p className="mt-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">Dismissed.</p>
       ) : (

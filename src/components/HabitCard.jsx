@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HabitIcon } from '../icons'
 import { currentStreak } from '../utils'
 import LottieStreak from './LottieStreak'
 
@@ -45,7 +46,7 @@ export default function HabitCard({ habit, done, completions, onToggle, overdue,
           {skipped && !done && <span className="text-xs text-neutral-400">—</span>}
         </span>
 
-        <span className="text-2xl">{habit.emoji}</span>
+        <HabitIcon value={habit.emoji} className="h-6 w-6 shrink-0" />
 
         <span className="min-w-0 flex-1">
           <span className={`block truncate font-semibold ${done || skipped ? 'text-neutral-400 line-through dark:text-neutral-600' : 'text-neutral-900 dark:text-white'}`}>

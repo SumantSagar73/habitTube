@@ -1,56 +1,57 @@
 import { todayKey, uid } from '../utils'
+import { HabitIcon } from '../icons'
 
 const PACKS = [
   {
     key: 'morning',
     name: 'Morning Routine',
-    emoji: '🌅',
+    emoji: 'sunrise',
     description: '5 keystone habits to start every day right',
     habits: [
-      { name: 'Make bed', emoji: '🛏️', days: [0, 1, 2, 3, 4, 5, 6], time: '07:00' },
-      { name: 'Meditate 10 min', emoji: '🧘', days: [0, 1, 2, 3, 4, 5, 6], time: '07:15' },
-      { name: 'Exercise', emoji: '🏋️', days: [1, 2, 3, 4, 5], time: '07:30' },
-      { name: 'Read 20 minutes', emoji: '📚', days: [0, 1, 2, 3, 4, 5, 6], time: '08:00' },
-      { name: 'Cold shower', emoji: '🚿', days: [0, 1, 2, 3, 4, 5, 6], time: '07:45' },
+      { name: 'Make bed', emoji: 'bed', days: [0, 1, 2, 3, 4, 5, 6], time: '07:00' },
+      { name: 'Meditate 10 min', emoji: 'meditate', days: [0, 1, 2, 3, 4, 5, 6], time: '07:15' },
+      { name: 'Exercise', emoji: 'dumbbell', days: [1, 2, 3, 4, 5], time: '07:30' },
+      { name: 'Read 20 minutes', emoji: 'book', days: [0, 1, 2, 3, 4, 5, 6], time: '08:00' },
+      { name: 'Cold shower', emoji: 'shower', days: [0, 1, 2, 3, 4, 5, 6], time: '07:45' },
     ],
   },
   {
     key: 'fitness',
     name: 'Fitness',
-    emoji: '💪',
+    emoji: 'dumbbell',
     description: 'Build a consistent movement practice',
     habits: [
-      { name: 'Workout', emoji: '🏋️', days: [1, 3, 5], time: '' },
-      { name: 'Walk 10,000 steps', emoji: '🚶', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
-      { name: 'Stretch', emoji: '🤸', days: [0, 1, 2, 3, 4, 5, 6], time: '21:00' },
-      { name: 'Track calories', emoji: '🥗', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
-      { name: 'Drink 2L water', emoji: '💧', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
+      { name: 'Workout', emoji: 'dumbbell', days: [1, 3, 5], time: '' },
+      { name: 'Walk 10,000 steps', emoji: 'walk', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
+      { name: 'Stretch', emoji: 'stretch', days: [0, 1, 2, 3, 4, 5, 6], time: '21:00' },
+      { name: 'Track calories', emoji: 'salad', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
+      { name: 'Drink 2L water', emoji: 'water', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
     ],
   },
   {
     key: 'learning',
     name: 'Learning',
-    emoji: '🧠',
+    emoji: 'brain',
     description: 'Daily habits for continuous growth',
     habits: [
-      { name: 'Read 30 minutes', emoji: '📖', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
-      { name: 'Study / practice', emoji: '✏️', days: [1, 2, 3, 4, 5], time: '' },
-      { name: 'Write in journal', emoji: '📔', days: [0, 1, 2, 3, 4, 5, 6], time: '22:00' },
-      { name: 'No phone 1st hour', emoji: '📵', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
-      { name: 'Listen to podcast', emoji: '🎧', days: [1, 2, 3, 4, 5], time: '' },
+      { name: 'Read 30 minutes', emoji: 'book', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
+      { name: 'Study / practice', emoji: 'pencil', days: [1, 2, 3, 4, 5], time: '' },
+      { name: 'Write in journal', emoji: 'journal', days: [0, 1, 2, 3, 4, 5, 6], time: '22:00' },
+      { name: 'No phone 1st hour', emoji: 'nophone', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
+      { name: 'Listen to podcast', emoji: 'headphones', days: [1, 2, 3, 4, 5], time: '' },
     ],
   },
   {
     key: 'mindfulness',
     name: 'Mindfulness',
-    emoji: '🌿',
+    emoji: 'leaf',
     description: 'Ground yourself and reduce stress daily',
     habits: [
-      { name: 'Morning meditation', emoji: '🧘', days: [0, 1, 2, 3, 4, 5, 6], time: '07:00' },
-      { name: 'Gratitude journal', emoji: '🙏', days: [0, 1, 2, 3, 4, 5, 6], time: '22:00' },
-      { name: 'Screen-free evening', emoji: '🌙', days: [0, 1, 2, 3, 4, 5, 6], time: '21:00' },
-      { name: 'Deep breathing', emoji: '🌬️', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
-      { name: 'Walk in nature', emoji: '🌲', days: [0, 6], time: '' },
+      { name: 'Morning meditation', emoji: 'meditate', days: [0, 1, 2, 3, 4, 5, 6], time: '07:00' },
+      { name: 'Gratitude journal', emoji: 'gratitude', days: [0, 1, 2, 3, 4, 5, 6], time: '22:00' },
+      { name: 'Screen-free evening', emoji: 'moon', days: [0, 1, 2, 3, 4, 5, 6], time: '21:00' },
+      { name: 'Deep breathing', emoji: 'wind', days: [0, 1, 2, 3, 4, 5, 6], time: '' },
+      { name: 'Walk in nature', emoji: 'tree', days: [0, 6], time: '' },
     ],
   },
 ]
@@ -92,7 +93,7 @@ export default function HabitTemplates({ existingHabits, onInstall, onClose }) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="flex items-center gap-2 font-extrabold text-neutral-900 dark:text-white">
-                      {pack.emoji} {pack.name}
+                      <HabitIcon value={pack.emoji} className="mr-1.5 inline h-4 w-4 align-[-2px]" />{pack.name}
                     </h3>
                     <p className="mt-0.5 text-sm font-medium text-neutral-400 dark:text-neutral-500">{pack.description}</p>
                   </div>
@@ -106,7 +107,7 @@ export default function HabitTemplates({ existingHabits, onInstall, onClose }) {
                     disabled={toInstall.length === 0}
                     className="shrink-0 rounded-full bg-neutral-900 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-neutral-700 disabled:opacity-40 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 disabled:cursor-not-allowed"
                   >
-                    {toInstall.length === 0 ? '✓ Installed' : `+ ${toInstall.length} habits`}
+                    {toInstall.length === 0 ? 'Installed' : `+ ${toInstall.length} habits`}
                   </button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -119,7 +120,7 @@ export default function HabitTemplates({ existingHabits, onInstall, onClose }) {
                           : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
                       }`}
                     >
-                      {h.emoji} {h.name}
+                      <HabitIcon value={h.emoji} className="mr-1.5 inline h-4 w-4 align-[-2px]" />{h.name}
                     </span>
                   ))}
                 </div>

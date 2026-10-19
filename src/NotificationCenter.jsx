@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Bell, CircleCheck, Compass, Flag, Flame, Info, ListChecks, Timer } from 'lucide-react'
 
 function timeAgo(ms) {
   const s = Math.floor((Date.now() - ms) / 1000)
@@ -11,12 +12,13 @@ function timeAgo(ms) {
 }
 
 const TYPE_ICON = {
-  streak: '🔥',
-  goal: '⚑',
-  task: '📋',
-  focus: '⏱',
-  habit: '✅',
-  info: 'ℹ',
+  streak: Flame,
+  goal: Flag,
+  task: ListChecks,
+  focus: Timer,
+  habit: CircleCheck,
+  arc: Compass,
+  info: Info,
 }
 
 export default function NotificationCenter({ notifications = [], onMarkRead, onMarkAllRead, onClear }) {
@@ -39,10 +41,7 @@ export default function NotificationCenter({ notifications = [], onMarkRead, onM
         title="Notifications"
         className="relative flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
       >
-        <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
+        <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-900 px-1 text-[10px] font-bold leading-none text-white dark:bg-white dark:text-neutral-900">
             {unread > 9 ? '9+' : unread}
@@ -86,7 +85,7 @@ export default function NotificationCenter({ notifications = [], onMarkRead, onM
                     n.read ? 'opacity-60' : ''
                   }`}
                 >
-                  <span className="mt-0.5 text-base shrink-0">{TYPE_ICON[n.type] ?? 'ℹ'}</span>
+                  <span className="mt-0.5 shrink-0 text-neutral-500 dark:text-neutral-400">{(() => { const Icon = TYPE_ICON[n.type] ?? Info; return <Icon className="h-4 w-4" strokeWidth={1.75} /> })()}</span>
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm leading-snug ${n.read ? 'font-normal text-neutral-600 dark:text-neutral-400' : 'font-semibold text-neutral-900 dark:text-white'}`}>
                       {n.title}

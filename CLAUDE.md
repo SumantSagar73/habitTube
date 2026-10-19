@@ -16,7 +16,7 @@ Playwright e2e tests live in `tests/e2e` (`npm run test:e2e`); Supabase and the 
 
 ## Architecture
 
-**Single-page React app** — no routing library. `App.jsx` owns all state and passes handlers down as props. Tab navigation (`today | plan | habits | insights | calendar | coach`) is local state. Heavy tab views (Plan, Insights, Calendar, Coach, Landing) are `React.lazy`-loaded.
+**Single-page React app** — no routing library. `App.jsx` owns all state and passes handlers down as props. Tab navigation (`today | plan | habits | insights | coach`) is local state; the old Calendar tab now lives in Insights → History. Heavy tab views (Plan, Insights, Calendar, Coach, Landing) are `React.lazy`-loaded.
 
 ### State layer (`useStore.js`)
 
@@ -55,6 +55,14 @@ Timer state (`focus`) lives entirely in `App.jsx` as local React state (not pers
 - `habitsForDate(habits, date)` → filters by `days` array (0=Sun…6=Sat)
 - `isDone(habit, completions, key)` → checks `completions[key]`
 - `currentStreak` / `habitRate` → streak and 30-day completion math
+
+### Icons
+
+**No emoji in the UI.** Use lucide (`lucide-react`). `icons.jsx` has a registry of habit/badge icons keyed by short strings, `HabitIcon` (renders by key) and `MoodIcon`. Habits and templates store the key in the existing `emoji` field; legacy saved emoji still render through `toIconKey()`. `iconKeys.js` is the plain list used by the habit picker and AI prompts (the AI is asked for icon keys, never emoji). Header, profile menu and settings use lucide directly.
+
+### Shell
+
+`AppHeader` (logo, 5 tabs, sync, New menu with Habit/Goal/Arc, bell, profile menu holding Settings/Export/Manual/Theme/Sign out). Settings is `SettingsPanel`: a large dialog with a section sidebar (General, Notifications, AI coach, Data & backup, Sharing).
 
 ### Design system
 

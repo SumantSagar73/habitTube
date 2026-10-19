@@ -1,4 +1,5 @@
 import { computeBadges, computeStats } from '../achievements'
+import { HabitIcon } from '../icons'
 
 export default function Achievements({ data }) {
   const stats = computeStats(data)
@@ -41,7 +42,7 @@ export default function Achievements({ data }) {
                 : 'border-neutral-200 opacity-70 dark:border-neutral-800'
             }`}
           >
-            <span className={`text-2xl ${b.earned ? '' : 'grayscale'}`}>{b.icon}</span>
+            <HabitIcon value={b.icon} className={`h-6 w-6 shrink-0 ${b.earned ? '' : 'opacity-40'}`} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-neutral-900 dark:text-white">{b.name}</p>
               {b.earned ? (

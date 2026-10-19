@@ -46,7 +46,7 @@ export default function useNotifications(data, setData) {
         push(setData, {
           id: `streak-risk-${key}-${h.id}`,
           type: 'streak',
-          title: `${h.emoji || '🔥'} Streak at risk — ${h.name}`,
+          title: `Streak at risk — ${h.name}`,
           body: `You have a ${streak}-day streak. Complete it before midnight!`,
           createdAt: Date.now(),
           read: false,
@@ -70,7 +70,7 @@ export default function useNotifications(data, setData) {
       push(setData, {
         id: `goal-deadline-${goal.period}-${goal.id}`,
         type: 'goal',
-        title: `⚑ Goal deadline in ${daysLeft}d — ${goal.title}`,
+        title: `Goal deadline in ${daysLeft}d — ${goal.title}`,
         body: `Only ${Math.round(pct)}% complete. Push to finish this ${goal.period.includes('W') ? 'week' : 'month'}.`,
         createdAt: Date.now(),
         read: false,
@@ -86,7 +86,7 @@ export default function useNotifications(data, setData) {
           push(setData, {
             id: `arc-week-${arc.id}-${nextWeek}`,
             type: 'arc',
-            title: `🗓 Week ${nextWeek + 1} of “${arc.title}” is ready to plan`,
+            title: `Week ${nextWeek + 1} of “${arc.title}” is ready to plan`,
             body: 'A one-minute check-in sets up your next week.',
             createdAt: Date.now(),
             read: false,
@@ -97,7 +97,7 @@ export default function useNotifications(data, setData) {
           push(setData, {
             id: `arc-quiet-${arc.id}-${Math.floor(quiet / 3)}`,
             type: 'arc',
-            title: `🧭 “${arc.title}” has gone quiet`,
+            title: `“${arc.title}” has gone quiet`,
             body: `${quiet} days without progress. Resume, pause or close it from the Plan tab.`,
             createdAt: Date.now(),
             read: false,
@@ -109,7 +109,7 @@ export default function useNotifications(data, setData) {
           push(setData, {
             id: `arc-ending-${arc.id}`,
             type: 'arc',
-            title: `🏁 “${arc.title}” ends in ${left} day${left === 1 ? '' : 's'}`,
+            title: `“${arc.title}” ends in ${left} day${left === 1 ? '' : 's'}`,
             body: 'Finish strong, then close it and plan your next arc.',
             createdAt: Date.now(),
             read: false,
@@ -126,7 +126,7 @@ export default function useNotifications(data, setData) {
         push(setData, {
           id: `tasks-midday-${key}`,
           type: 'task',
-          title: `📋 ${left} task${left > 1 ? 's' : ''} left today`,
+          title: `${left} task${left > 1 ? 's' : ''} left today`,
           body: 'Midday check — keep the momentum going.',
           createdAt: Date.now(),
           read: false,

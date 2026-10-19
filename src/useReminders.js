@@ -31,10 +31,10 @@ function checkInSlots(now, habits, completions, tasks) {
   const noun = pending === 1 ? 'thing' : 'things'
 
   return [
-    { id: 'morning', time: '09:00', title: '🌅 Plan your day', body: 'Add today’s tasks and pick what matters most.' },
-    pending > 0 && { id: 'midday', time: '13:00', title: '👋 Midday check-in', body: `${pending} ${noun} still to do — have you done any yet?` },
+    { id: 'morning', time: '09:00', title: 'Plan your day', body: 'Add today’s tasks and pick what matters most.' },
+    pending > 0 && { id: 'midday', time: '13:00', title: 'Midday check-in', body: `${pending} ${noun} still to do — have you done any yet?` },
     pending > 0 && { id: 'afternoon', time: '17:00', title: '⏳ Still on your list', body: `${pending} ${noun} left today. Knock one out?` },
-    { id: 'night', time: '21:00', title: '🌙 How did today go?', body: 'Tick off what you did and write a quick note.' },
+    { id: 'night', time: '21:00', title: 'How did today go?', body: 'Tick off what you did and write a quick note.' },
   ].filter(Boolean)
 }
 
@@ -73,7 +73,7 @@ export default function useReminders(data) {
         if (fired.current[fk]) continue
         fired.current[fk] = true
         saveFired(fired.current)
-        notify(`${h.emoji} ${h.name}`, 'Time for your habit — keep the streak alive.', fk)
+        notify(`${h.name}`, 'Time for your habit — keep the streak alive.', fk)
       }
 
       // daily plan / check-in / night nudges

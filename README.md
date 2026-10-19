@@ -10,14 +10,14 @@ Built for one user first (the author), so it is opinionated: monochrome, frosted
 
 | Area | What you get |
 | --- | --- |
-| **Today** | Hero stats (deep work, progress, focus this week), the coach with one-tap openers, active arcs, an evening check-in, the habit checklist, tasks with a day timeline, and a focus timer |
+| **Today** | Greeting and status line, a week strip, three cards (deep work, your active arc, focus rhythm with your best hour), the coach with one-tap openers, the habit checklist, tasks with a day timeline, a focus timer, and a wrap-up card (mood, journal, evening check-in) |
 | **Arcs** | Name your own 1–3 month push ("Winter arc", "Exam sprint"). A short intake generates a week-by-week path, habits and your first week of tasks. Max 2 active; a quiet arc must be resumed, paused or closed before starting another |
 | **Weekly check-in** | When a new arc week starts, say how last week felt and what got in the way. The coach plans the next week from your real results |
 | **Arc review** | When an arc ends: numbers, an honest AI read, close it and roll into the next one |
 | **Plan** | Year → Quarter → Month → Week goal cascade with rollups, daily tasks, reviews |
 | **Habits** | Scheduling, streaks, freeze days, miss reasons (strict mode), templates |
 | **Coach** | Streaming chat that knows your habits, goals, arcs and check-ins; proposes plans you confirm with one click |
-| **Insights / Calendar** | Completion trends, heatmaps, goal progress, mood overlay |
+| **Insights** | Overview, Habits, Goals, History (the month calendar) and Focus views: trends, heatmaps, goal progress, mood overlay |
 | **Focus blocker** | MV3 browser extension (`extension/`) that blocks non-allowlisted sites during a focus session |
 | **Platform** | Offline-first PWA, reminders, JSON backup/restore, point-in-time snapshots, public profile |
 
@@ -51,7 +51,7 @@ Provider keys have no `VITE_` prefix, so they are read only by the dev server / 
 
 ## Architecture
 
-Single-page React 19 + Vite + Tailwind 4 app. No router: `App.jsx` owns all state and passes handlers down; tabs are local state. Heavy views (Plan, Insights, Calendar, Coach, Landing) are lazy-loaded.
+Single-page React 19 + Vite + Tailwind 4 app, with lucide icons (no emoji in the UI). No router: `App.jsx` owns all state and passes handlers down; tabs are local state. Heavy views (Plan, Insights, Calendar, Coach, Landing) are lazy-loaded.
 
 ```
 src/

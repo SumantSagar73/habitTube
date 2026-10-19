@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import { aiNextWeek } from '../ai'
 import { arcDay, weekStats } from '../arcs'
 
@@ -59,7 +60,7 @@ export default function ArcCheckin({ arc, weekIdx, data, onApply, onClose }) {
             <h2 className="text-lg font-extrabold text-neutral-900 dark:text-white">Week {weekIdx + 1} check-in</h2>
             <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">{arc.title} · {arc.weeks.length} weeks · {total} days</p>
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close">✕</button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
         {plan ? (
@@ -72,7 +73,7 @@ export default function ArcCheckin({ arc, weekIdx, data, onApply, onClose }) {
             {plan.tasks.map((t, i) => (
               <div key={i} className="flex items-center justify-between gap-3 py-1 text-sm text-neutral-700 dark:text-neutral-200">
                 <span>{t.title}</span>
-                <button className="shrink-0 text-neutral-400 hover:text-neutral-900 dark:hover:text-white" onClick={() => removeTask(i)} aria-label="Remove task">✕</button>
+                <button className="shrink-0 text-neutral-400 hover:text-neutral-900 dark:hover:text-white" onClick={() => removeTask(i)} aria-label="Remove task"><X className="h-4 w-4" /></button>
               </div>
             ))}
             <div className="mt-6 flex gap-2">

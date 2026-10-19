@@ -1,4 +1,5 @@
 import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from './planUtils'
+import { ICON_KEYS_PROMPT } from './iconKeys'
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
 import { arcDay, normalizeArcPlan, normalizeWeekPlan } from './arcs'
@@ -204,7 +205,7 @@ export async function aiTest(model) {
 // ---- arcs ----
 const ARC_SYSTEM = `You are an expert coach designing a personalized, time-boxed "arc" the user named themselves. Reply with ONLY one JSON object, no prose, no code fences.
 Schema (compact arrays):
-{"title":"short arc name","why":"one sentence in the user's words","weeks":[["week theme","measurable milestone with a number"], ...exactly N entries],"target":["measurable goal for the whole arc",number,"unit"] or null,"habits":[["emoji","small recurring anchor",[days 0=Sun..6],"HH:MM or empty"], ...2 to 4],"tasks":[[dayOffset 0-6,"specific session, with duration","h|m|l"], ...8 to 14, the next 7 days],"minDay":"the 15-minute version of a day for bad days"}
+{"title":"short arc name","why":"one sentence in the user's words","weeks":[["week theme","measurable milestone with a number"], ...exactly N entries],"target":["measurable goal for the whole arc",number,"unit"] or null,"habits":[["icon key","small recurring anchor",[days 0=Sun..6],"HH:MM or empty"], ...2 to 4],"tasks":[[dayOffset 0-6,"specific session, with duration","h|m|l"], ...8 to 14, the next 7 days],"minDay":"the 15-minute version of a day for bad days"}
 Quality bar:
 - Be specific and concrete: name real exercises, topics, chapters, sets/reps, minutes. Never write vague advice like "stay consistent" or "walk 5 minutes" unless the user is truly a beginner with almost no time.
 - Start at the user's stated level, then ramp every week (about 10-20% more volume or difficulty). Later weeks must differ from week 1.
@@ -212,6 +213,7 @@ Quality bar:
 - tasks = a real schedule for the next 7 days that fits the daily time, with rest days where sensible. Habits are small daily anchors, different from the tasks.
 - Week 1 tasks must match the week 1 milestone numbers exactly (a 1 km milestone means 1 km runs, not 2 km).
 - Habits must fit the stated daily time and situation. Do not invent wake-up, sleep or diet habits unless the user asked.
+- habit icon key must be one of: ${ICON_KEYS_PROMPT}.
 - Keep each string under 14 words.`
 
 function arcContext({ habits = [], completions = {}, goals = [] }) {
@@ -328,7 +330,7 @@ CORRECT format (always wrap everything in {"plan":[...]}):
  {"kind":"goal","level":"quarter","title":"Run a 5K without stopping","type":"checklist"},
  {"kind":"goal","level":"month","title":"Run 60 km this month","type":"numeric","target":60,"unit":"km"},
  {"kind":"goal","level":"week","title":"Run 15 km this week","type":"numeric","target":15,"unit":"km"},
- {"kind":"habit","name":"Morning run","emoji":"🏃","days":[1,3,5],"time":"07:00"},
+ {"kind":"habit","name":"Morning run","emoji":"run","days":[1,3,5],"time":"07:00"},
  {"kind":"task","title":"First easy 3 km run — just show up","dayOffset":0,"priority":"high"},
  {"kind":"task","title":"Plan this week's run routes","dayOffset":1,"priority":"medium"}
 ]}
@@ -341,7 +343,7 @@ WRONG (never do this — bare object, missing plan wrapper):
 
 SCHEMA RULES:
 - goal: level = year|quarter|month|week; type = checklist or numeric (numeric needs target + unit); always include ALL 4 levels.
-- habit: name (string), emoji (one emoji), days (array of 0-6 where 0=Sun), time (optional "HH:MM").
+- habit: name (string), emoji (an icon key from: ${ICON_KEYS_PROMPT}), days (array of 0-6 where 0=Sun), time (optional "HH:MM").
 - task: title, dayOffset 0-6 (0=today), optional priority high|medium|low.
 - Order in array: goals year→quarter→month→week, then habits, then tasks.
 - KEEP IT COMPACT (the reply has a length limit): max ~20 items total, max ~10 tasks. Cover only this week's tasks. Use a habit for anything that repeats instead of listing many tasks. Short titles.

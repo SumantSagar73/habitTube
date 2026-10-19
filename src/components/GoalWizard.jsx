@@ -124,7 +124,7 @@ export default function GoalWizard({ habits, onCreate, onClose }) {
                 <Select value={habitId} onChange={(e) => setHabitId(e.target.value)}>
                   {habits.map((h) => (
                     <option key={h.id} value={h.id}>
-                      {h.emoji} {h.name}
+                      {h.name}
                     </option>
                   ))}
                 </Select>

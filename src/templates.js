@@ -7,7 +7,7 @@ import { todayKey, uid } from './utils'
 export const TEMPLATES = [
   {
     key: 'fit',
-    emoji: '🏃',
+    emoji: 'run',
     name: 'Get fit',
     blurb: 'Run a 10K by the end of the quarter.',
     levels: {
@@ -19,7 +19,7 @@ export const TEMPLATES = [
   },
   {
     key: 'learn',
-    emoji: '📚',
+    emoji: 'book',
     name: 'Learn a skill',
     blurb: 'Study consistently toward fluency.',
     levels: {
@@ -31,7 +31,7 @@ export const TEMPLATES = [
   },
   {
     key: 'save',
-    emoji: '💰',
+    emoji: 'money',
     name: 'Save money',
     blurb: 'Build a $6,000 cushion this year.',
     levels: {
@@ -43,7 +43,7 @@ export const TEMPLATES = [
   },
   {
     key: 'write',
-    emoji: '✍️',
+    emoji: 'pen',
     name: 'Write a book',
     blurb: 'First draft done by end of year — 500 words a day.',
     levels: {
@@ -55,7 +55,7 @@ export const TEMPLATES = [
   },
   {
     key: 'code',
-    emoji: '💻',
+    emoji: 'code',
     name: '100 Days of Code',
     blurb: 'Code every day and ship a real project.',
     levels: {
@@ -67,7 +67,7 @@ export const TEMPLATES = [
   },
   {
     key: 'sleep',
-    emoji: '😴',
+    emoji: 'bed',
     name: 'Sleep better',
     blurb: 'Hit 8 hours consistently and wake up rested.',
     levels: {
@@ -79,7 +79,7 @@ export const TEMPLATES = [
   },
   {
     key: 'meditate',
-    emoji: '🧘',
+    emoji: 'meditate',
     name: 'Daily meditation',
     blurb: 'Build a consistent mindfulness practice.',
     levels: {

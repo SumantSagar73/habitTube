@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
+import { HabitIcon } from '../icons'
 import { aiGenerateArc } from '../ai'
 import { activeArcs, MAX_ACTIVE_ARCS, staleDays } from '../arcs'
 
@@ -116,8 +118,8 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
             <label className={`${labelCls} mt-5`}>Habits</label>
             {plan.habits.map((h, i) => (
               <div key={i} className="flex items-center justify-between py-1 text-sm text-neutral-700 dark:text-neutral-200">
-                <span>{h.emoji} {h.name}</span>
-                <button className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" onClick={() => removeAt('habits', i)} aria-label="Remove habit">✕</button>
+                <span className="flex items-center gap-2"><HabitIcon value={h.emoji} className="h-4 w-4" />{h.name}</span>
+                <button className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" onClick={() => removeAt('habits', i)} aria-label="Remove habit"><X className="h-4 w-4" /></button>
               </div>
             ))}
           </>
@@ -129,7 +131,7 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
             {plan.tasks.map((t, i) => (
               <div key={i} className="flex items-center justify-between py-1 text-sm text-neutral-700 dark:text-neutral-200">
                 <span>{t.title}</span>
-                <button className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" onClick={() => removeAt('tasks', i)} aria-label="Remove task">✕</button>
+                <button className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" onClick={() => removeAt('tasks', i)} aria-label="Remove task"><X className="h-4 w-4" /></button>
               </div>
             ))}
           </>
@@ -215,7 +217,7 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-neutral-900 dark:text-white">Start an arc</h2>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close">✕</button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
         {body}
       </div>

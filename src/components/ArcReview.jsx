@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import { aiArcReview } from '../ai'
 import { arcSummary } from '../arcs'
 
@@ -50,7 +51,7 @@ export default function ArcReview({ arc, data, aiEnabled, onFinish, onClose }) {
             <h2 className="text-lg font-extrabold text-neutral-900 dark:text-white">Arc review</h2>
             <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">{arc.title} · {arc.weeks.length} weeks</p>
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close">✕</button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="grid grid-cols-3 gap-3">

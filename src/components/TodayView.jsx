@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { Sparkles } from 'lucide-react'
+import { MoodIcon } from '../icons'
+import { HabitIcon } from '../icons'
 import { quoteOfTheDay } from '../quotes'
-import { addDays, dateKey, formatNice, habitsForDate, isDone, nextPriority, todayKey } from '../utils'
+import { addDays, dateKey, habitsForDate, isDone, nextPriority, todayKey } from '../utils'
 import { quickChat } from '../ai'
 import AICoach from './AICoach'
 import Confetti from './Confetti'
@@ -9,7 +12,6 @@ import FocusTimer from './FocusTimer'
 import GoalOptions from './GoalOptions'
 import HabitCard from './HabitCard'
 import { PriorityDot, PrioritySelect } from './Priority'
-import ProgressRing from './ProgressRing'
 import Select from './Select'
 import TodayHero from './TodayHero'
 
@@ -55,7 +57,7 @@ function LinkSelect({ goals, habits, value, onChange, compact, className }) {
         <optgroup label="Habits">
           {habits.map((h) => (
             <option key={h.id} value={`h_${h.id}`}>
-              {h.emoji} {h.name}
+              {h.name}
             </option>
           ))}
         </optgroup>
@@ -89,7 +91,10 @@ export default function TodayView({
   onAddRecurring,
   onDeleteRecurring,
   name,
+  arcs,
+  onNewArc,
   afterCoach,
+  wrapUp,
   aiEnabled,
   aiModel,
   motivation,
@@ -167,7 +172,7 @@ export default function TodayView({
     setCopingTips((t) => ({ ...t, [habit.id]: { loading: true, tip: '' } }))
     try {
       const reply = await quickChat([
-        { role: 'user', content: `I skipped my habit "${habit.emoji} ${habit.name}" yesterday. Reason: "${reason}". Give me ONE specific, actionable fix in 1-2 sentences to prevent this tomorrow. Be direct, no fluff.` }
+        { role: 'user', content: `I skipped my habit "${habit.name}" yesterday. Reason: "${reason}". Give me ONE specific, actionable fix in 1-2 sentences to prevent this tomorrow. Be direct, no fluff.` }
       ])
       setCopingTips((t) => ({ ...t, [habit.id]: { loading: false, tip: reply } }))
     } catch {
@@ -180,6 +185,7 @@ export default function TodayView({
       <Confetti active={confetti} />
       <TodayHero
         name={name}
+        message={accountabilityMessage(pending, doneCount, due.length, pendingTasksCount, doneTasksCount, totalTasksCount, now.getHours())}
         focusMinutesToday={focusMinutesToday}
         focusRunning={!!focus?.running}
         habitsDone={doneCount}
@@ -187,6 +193,10 @@ export default function TodayView({
         tasksDone={doneTasksCount}
         tasksTotal={totalTasksCount}
         focusLog={focusLog}
+        habits={habits}
+        completions={completions}
+        arcs={arcs}
+        onNewArc={onNewArc}
       />
       <AICoach
         enabled={aiEnabled}
@@ -221,7 +231,7 @@ export default function TodayView({
               <div key={h.id} className="flex flex-col gap-2 border-b border-neutral-100 pb-3.5 last:border-b-0 last:pb-0 dark:border-neutral-800/40">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <span className="flex w-52 shrink-0 items-center gap-2 text-sm font-bold text-neutral-900 dark:text-white">
-                    <span className="text-lg">{h.emoji}</span>
+                    <HabitIcon value={h.emoji} className="h-[18px] w-[18px]" />
                     <span className="truncate">{h.name}</span>
                   </span>
                   <input
@@ -259,7 +269,7 @@ export default function TodayView({
                       disabled={copingTips[h.id]?.loading}
                       className="flex items-center gap-1 rounded-full border border-neutral-200 px-2.5 py-0.5 text-[10px] font-semibold text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-500 dark:hover:text-white"
                     >
-                      {copingTips[h.id]?.loading ? '…' : '✦ Get AI fix'}
+                      {copingTips[h.id]?.loading ? '…' : <><Sparkles className="h-3 w-3" /> Get AI fix</>}
                     </button>
                   )}
                 </div>
@@ -312,7 +322,7 @@ export default function TodayView({
                         {showStackPrompt && (
                           <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-500 dark:bg-neutral-900/60 dark:text-neutral-400">
                             <span>→ Now:</span>
-                            <span className="font-bold text-neutral-900 dark:text-white">{h.emoji} {h.name}</span>
+                            <span className="font-bold text-neutral-900 dark:text-white">{h.name}</span>
                           </div>
                         )}
                         <HabitCard
@@ -378,7 +388,7 @@ export default function TodayView({
           {/* Daily journal + mood */}
           <section className="glass rounded-3xl p-6">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
-              Today's journal
+              Wrap up your day
             </h3>
             <MoodPicker value={moods[key]} onChange={(v) => onSetMood(key, v)} />
             <textarea
@@ -389,35 +399,11 @@ export default function TodayView({
               className="mt-4 w-full resize-y rounded-xl border border-neutral-200 bg-transparent px-4 py-3 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
             />
           </section>
+          {wrapUp}
         </div>
 
         {/* Right Column: Progress ring, Focus Timer, AI Coach, Quote widget (span 4) */}
         <div className="space-y-6 lg:col-span-4">
-          {/* Today's progress */}
-          <section className="glass flex flex-col items-center gap-5 rounded-3xl p-6 text-center">
-            <div className="flex flex-wrap items-center gap-6 justify-center">
-              <div className="flex flex-col items-center gap-2">
-                <ProgressRing done={doneCount} total={activeDue.length} size={100} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">Habits</span>
-              </div>
-              <div className="flex flex-col items-center gap-2">
-                <ProgressRing done={doneTasksCount} total={totalTasksCount} size={100} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">Tasks</span>
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
-                {formatNice(key)}
-              </p>
-              <h2 className="mt-1 text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
-                {(pending === 0 && activeDue.length > 0) && (totalTasksCount === 0 || doneTasksCount === totalTasksCount) ? 'Plan complete.' : "Today's plan"}
-              </h2>
-              <p className="mt-2 text-xs leading-relaxed font-semibold text-neutral-400 dark:text-neutral-500">
-                {accountabilityMessage(pending, doneCount, due.length, pendingTasksCount, doneTasksCount, totalTasksCount, now.getHours())}
-              </p>
-            </div>
-          </section>
-
           {/* Pomodoro timer */}
           <FocusTimer
             focus={focus}
@@ -438,27 +424,21 @@ export default function TodayView({
             blockerInstalled={blockerInstalled}
           />
 
-          {/* Quote of the day */}
-          <section className="rounded-3xl border border-neutral-100 bg-neutral-50/50 p-6 text-center dark:border-neutral-800/40 dark:bg-neutral-900/10">
-            <p className="font-serif text-lg italic leading-normal text-neutral-800 dark:text-neutral-100">
-              "{quote.text}"
-            </p>
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
-              — {quote.author}
-            </p>
-          </section>
         </div>
       </div>
+      <p className="pt-2 text-center font-serif text-base italic text-neutral-400 dark:text-neutral-500">
+        “{quote.text}” <span className="not-italic text-xs font-semibold uppercase tracking-[0.14em]">— {quote.author}</span>
+      </p>
     </div>
   )
 }
 
 export const MOODS = [
-  { v: 1, e: '😣', l: 'Rough' },
-  { v: 2, e: '😕', l: 'Low' },
-  { v: 3, e: '😐', l: 'Okay' },
-  { v: 4, e: '🙂', l: 'Good' },
-  { v: 5, e: '😄', l: 'Great' },
+  { v: 1, l: 'Rough' },
+  { v: 2, l: 'Low' },
+  { v: 3, l: 'Okay' },
+  { v: 4, l: 'Good' },
+  { v: 5, l: 'Great' },
 ]
 
 function MoodPicker({ value, onChange }) {
@@ -477,7 +457,7 @@ function MoodPicker({ value, onChange }) {
                 : 'border-neutral-200 hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600'
             }`}
           >
-            <span className={`text-2xl transition ${value && value !== m.v ? 'opacity-40 grayscale' : ''}`}>{m.e}</span>
+            <MoodIcon level={m.v} className={`h-6 w-6 transition ${value && value !== m.v ? 'opacity-40' : ''}`} />
             <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">{m.l}</span>
           </button>
         ))}
@@ -618,7 +598,7 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
                   compact
                   className="w-20 shrink-0"
                 >
-                  <option value="">⏰</option>
+                  <option value="">Time</option>
                   {HOURS.map((h) => (
                     <option key={h} value={h}>
                       {hourLabel(h)}
@@ -688,7 +668,7 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
           compact
           className="w-20 shrink-0"
         >
-          <option value="">⏰</option>
+          <option value="">Time</option>
           {HOURS.map((h) => (
             <option key={h} value={h}>
               {hourLabel(h)}

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { HabitIcon } from '../icons'
 import { bestStreak, currentStreak, habitRate, WEEKDAYS } from '../utils'
 import HabitGrid from './HabitGrid'
 import HabitTemplates from './HabitTemplates'
@@ -113,7 +114,7 @@ export default function ManageView({ habits, completions, onOpen, onEdit, onDele
               </svg>
             </span>
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-2xl dark:bg-neutral-800">
-              {h.emoji}
+              <HabitIcon value={h.emoji} className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate font-bold text-neutral-900 dark:text-white">{h.name}</p>

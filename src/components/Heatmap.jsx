@@ -51,7 +51,7 @@ export default function Heatmap({ habits, completions, dark, single = false }) {
     const day = formatNice(cell.key)
     if (single) {
       if (cell.rate === null) return `${day} — not scheduled`
-      return `${day} — ${cell.rate === 1 ? 'completed ✓' : 'missed ✗'}`
+      return `${day} — ${cell.rate === 1 ? 'completed' : 'missed'}`
     }
     return `${day} — ${cell.rate === null ? 'nothing scheduled' : `${Math.round(cell.rate * 100)}% done`}`
   }

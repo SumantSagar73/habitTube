@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check } from 'lucide-react'
 import { aiChatStream, aiCoachReply, buildCoachContext, parseProposal } from '../ai'
 import AIText from './AIText'
 
@@ -67,7 +68,7 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
         ))}
       </div>
       {applied ? (
-        <p className="mt-3 text-sm font-bold text-neutral-900 dark:text-white">✓ Added to your plan — see the Plan tab.</p>
+        <p className="mt-3 text-sm font-bold text-neutral-900 dark:text-white"><Check className="mr-1 inline h-4 w-4 align-[-2px]" />Added to your plan — see the Plan tab.</p>
       ) : dismissed ? (
         <p className="mt-3 text-sm font-medium text-neutral-400 dark:text-neutral-500">Dismissed.</p>
       ) : (

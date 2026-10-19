@@ -26,10 +26,11 @@ const ARC_PLAN = {
 
 const sse = (text) => `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`
 
-export async function mockBackend(page, { signedIn = true } = {}) {
+// seed: extra fields merged into the initial saved state (e.g. habits).
+export async function mockBackend(page, { signedIn = true, seed = {} } = {}) {
   const ai = { calls: [] }
 
-  await page.addInitScript(({ signedIn, ref }) => {
+  await page.addInitScript(({ signedIn, ref, seed }) => {
     if (!signedIn) return
     // Supabase stores its session under sb-<project-ref>-auth-token.
     const session = {
@@ -43,8 +44,8 @@ export async function mockBackend(page, { signedIn = true } = {}) {
     for (const key of Object.keys(localStorage)) if (key.endsWith('-auth-token')) localStorage.removeItem(key)
     localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(session))
     // Skip first-run onboarding so its overlay doesn't cover the app.
-    localStorage.setItem('habittube-data-v1', JSON.stringify({ onboardingDone: true }))
-  }, { signedIn, ref: new URL(E2E_SUPABASE_URL).hostname.split('.')[0] })
+    localStorage.setItem('habittube-data-v1', JSON.stringify({ onboardingDone: true, ...seed }))
+  }, { signedIn, seed, ref: new URL(E2E_SUPABASE_URL).hostname.split('.')[0] })
 
   // Supabase: no remote state; every write succeeds.
   await page.route(/\.supabase\.co\//, (route) => {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HabitIcon } from '../icons'
 import { addDays, dateKey, todayKey } from '../utils'
 import GoalOptions from './GoalOptions'
 import Select from './Select'
@@ -53,7 +54,7 @@ function Chip({ task, dayKey, goals, habits, onToggleTask, onDeleteTask, onUpdat
             <optgroup label="Habits">
               {habits.map((h) => (
                 <option key={h.id} value={`h_${h.id}`}>
-                  {h.emoji} {h.name}
+                  <HabitIcon value={h.emoji} className="mr-1 inline h-4 w-4 align-[-2px]" />{h.name}
                 </option>
               ))}
             </optgroup>
@@ -67,7 +68,7 @@ function Chip({ task, dayKey, goals, habits, onToggleTask, onDeleteTask, onUpdat
         compact
         className="w-20 shrink-0"
       >
-        <option value="">⏰</option>
+        <option value="">Time</option>
         {HOURS.map((h) => (
           <option key={h} value={h}>
             {hourLabel(h)}

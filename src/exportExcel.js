@@ -67,7 +67,7 @@ export default async function exportExcel({ habits, completions, notes, missNote
     wb,
     'Habits',
     habits.map((h) => ({
-      Habit: `${h.emoji} ${h.name}`,
+      Habit: h.name,
       Schedule: h.days.length === 7 ? 'Every day' : h.days.map((d) => WEEKDAYS[d]).join(', '),
       'Reminder time': h.time || '',
       'Created on': h.createdAt,
@@ -109,7 +109,7 @@ export default async function exportExcel({ habits, completions, notes, missNote
   const missRows = []
   for (const h of habits) {
     for (const [key, reason] of Object.entries(missNotes[h.id] || {})) {
-      if (reason.trim()) missRows.push({ Date: key, Habit: `${h.emoji} ${h.name}`, Reason: reason })
+      if (reason.trim()) missRows.push({ Date: key, Habit: h.name, Reason: reason })
     }
   }
   missRows.sort((a, b) => b.Date.localeCompare(a.Date))

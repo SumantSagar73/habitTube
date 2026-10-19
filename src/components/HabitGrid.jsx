@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { HabitIcon } from '../icons'
 import { addDays, dateKey, isDone, isScheduled, todayKey, WEEKDAYS } from '../utils'
 
 const WINDOW = 14 // days shown at once
@@ -74,7 +75,7 @@ export default function HabitGrid({ habits, completions, onToggleOn }) {
                 <tr key={h.id} className="group">
                   <td className="sticky left-0 z-10 bg-white py-1.5 pr-3 dark:bg-[#111]">
                     <div className="flex items-center gap-2 group-hover:opacity-100">
-                      <span className="text-lg">{h.emoji}</span>
+                      <HabitIcon value={h.emoji} className="h-[18px] w-[18px]" />
                       <span className="max-w-[150px] truncate text-sm font-semibold text-neutral-800 dark:text-neutral-100">
                         {h.name}
                       </span>

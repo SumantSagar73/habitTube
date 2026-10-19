@@ -1,4 +1,5 @@
 import { addDays, bestStreak, currentStreak, dateKey, formatNice, habitRate, isDone, isScheduled, todayKey, WEEKDAYS } from '../utils'
+import { HabitIcon } from '../icons'
 import Heatmap from './Heatmap'
 import LottieStreak from './LottieStreak'
 
@@ -41,7 +42,7 @@ export default function HabitDetail({ habit, completions, missNotes, dark, onMis
         {/* header */}
         <div className="mb-6 flex items-start gap-4">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-3xl dark:bg-neutral-800">
-            {habit.emoji}
+            <HabitIcon value={habit.emoji} className="h-7 w-7" />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
@@ -50,7 +51,7 @@ export default function HabitDetail({ habit, completions, missNotes, dark, onMis
             <p className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
               {habit.days.length === 7 ? 'Every day' : habit.days.map((d) => WEEKDAYS[d]).join(' · ')}
               {habit.time && ` · ${habit.time}`}
-              {doneToday && ' · done today ✓'}
+              {doneToday && ' · done today'}
             </p>
           </div>
           <button

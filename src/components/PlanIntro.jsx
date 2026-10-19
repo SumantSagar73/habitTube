@@ -1,4 +1,5 @@
 import { TEMPLATES } from '../templates'
+import { HabitIcon } from '../icons'
 
 const STEPS = [
   { n: '1', t: 'Set the big goal', d: 'Name what you want by the end of the year.' },
@@ -52,7 +53,7 @@ export default function PlanIntro({ onUseTemplate, onAddGoal }) {
               onClick={() => onUseTemplate(t)}
               className="glass rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:border-neutral-400 dark:hover:border-neutral-600"
             >
-              <span className="text-3xl">{t.emoji}</span>
+              <HabitIcon value={t.emoji} className="h-7 w-7" />
               <p className="mt-3 font-bold text-neutral-900 dark:text-white">{t.name}</p>
               <p className="mt-0.5 text-sm font-medium text-neutral-400 dark:text-neutral-500">{t.blurb}</p>
               <span className="mt-3 inline-block text-xs font-bold text-neutral-900 dark:text-white">Use this →</span>

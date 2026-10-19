@@ -1,10 +1,13 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { toIconKey } from './icons'
 import exportExcel from './exportExcel'
 import { playAlarm } from './sounds'
 import AuthScreen from './components/AuthScreen'
 import CoachWidget from './components/CoachWidget'
 import { fmtClock } from './components/FocusTimer'
 import ArcWizard from './components/ArcWizard'
+import { ChartColumn, House, MessageCircle, Repeat, Target } from 'lucide-react'
+import AppHeader from './components/AppHeader'
 import ArcCheckin from './components/ArcCheckin'
 import ArcReview from './components/ArcReview'
 import DayCheckin from './components/DayCheckin'
@@ -15,13 +18,12 @@ import HabitModal from './components/HabitModal'
 import ManageView from './components/ManageView'
 import OnboardingFlow from './components/OnboardingFlow'
 import PWABanner from './components/PWABanner'
-import SettingsModal from './components/SettingsModal'
+import SettingsPanel from './components/SettingsPanel'
 import TodayView from './components/TodayView'
 import { buildArcPatch, buildWeekPatch, pendingWeek } from './arcs'
 import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
-import NotificationCenter from './NotificationCenter'
 import PublicProfile from './components/PublicProfile'
 import useNotifications from './useNotifications'
 import useReminders from './useReminders'
@@ -48,7 +50,6 @@ const TABS = [
   { id: 'plan', label: 'Plan' },
   { id: 'habits', label: 'Habits' },
   { id: 'insights', label: 'Insights' },
-  { id: 'calendar', label: 'Calendar' },
   { id: 'coach', label: 'Coach' },
 ]
 
@@ -65,7 +66,6 @@ export default function App() {
   const [planMode, setPlanMode] = useState('cascade') // 'cascade' | 'outline'
   const [modal, setModal] = useState(null) // null | 'new' | habit object
   const [detailId, setDetailId] = useState(null)
-  const [newMenu, setNewMenu] = useState(false)
   const [wizard, setWizard] = useState(false)
   const [arcWizard, setArcWizard] = useState(false)
   const [checkinArcId, setCheckinArcId] = useState(null)
@@ -143,9 +143,9 @@ export default function App() {
       else if (k === 'h') setTab('habits')
       else if (k === 'i') setTab('insights')
       else if (k === 'c') setTab('coach')
-      else if (k === 'n') setNewMenu((v) => !v)
+      else if (k === 'n') setModal('new')
       else if (k === 'f') setTimerFs((v) => !v)
-      else if (k === 'escape') { setNewMenu(false); setSettings(false) }
+      else if (k === 'escape') setSettings(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -212,9 +212,9 @@ export default function App() {
     const noteId = `focus-done-${todayKey()}-${f.goalId || 'free'}-${Date.now()}`
     setData((d) => ({
       ...d,
-      focusLog: [...(d.focusLog || []), { date: todayKey(), minutes: f.durationMin, goalId: f.goalId, label: f.label }],
+      focusLog: [...(d.focusLog || []), { date: todayKey(), minutes: f.durationMin, goalId: f.goalId, label: f.label, at: Date.now() - f.durationMin * 60000 }],
       notifications: [
-        { id: noteId, type: 'focus', title: `⏱ Focus session done — ${f.durationMin} min`, body: f.label || 'Great work! Take a short break.', createdAt: Date.now(), read: false },
+        { id: noteId, type: 'focus', title: `Focus session done — ${f.durationMin} min`, body: f.label || 'Great work! Take a short break.', createdAt: Date.now(), read: false },
         ...(d.notifications || []),
       ].slice(0, 50),
     }))
@@ -234,7 +234,7 @@ export default function App() {
       playAlarm()
     }
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      const title = 'Focus session done ⏱️'
+      const title = 'Focus session done'
       const body = f.label ? `Nice work on “${f.label}”.` : 'Nice deep-work session.'
       if (navigator.serviceWorker?.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'NOTIFY', title, body, tag: 'focus-done' })
@@ -552,7 +552,7 @@ export default function App() {
         id: uid(),
         createdAt: todayKey(),
         name: it.name.trim(),
-        emoji: it.emoji || '💪',
+        emoji: toIconKey(it.emoji, 'dumbbell'),
         days: Array.isArray(it.days) && it.days.length ? it.days.map(Number) : [0, 1, 2, 3, 4, 5, 6],
         time: it.time || '',
         color: '#171717',
@@ -771,158 +771,29 @@ export default function App() {
   return (
     <div className="app-bg min-h-screen overflow-x-hidden bg-white text-neutral-900 transition-colors duration-300 dark:bg-[#0a0a0a] dark:text-white">
       <div className="mx-auto w-full max-w-[1440px] px-4 pb-28 sm:px-8 md:pb-20" style={{ paddingBottom: 'max(7rem, calc(7rem + env(safe-area-inset-bottom)))' }}>
-        {/* header */}
-        <header className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-200 py-6 dark:border-neutral-800 ${timerFs ? 'hidden' : ''}`}>
-          <div className="flex items-center gap-6">
-            <h1 className="text-[22px] font-extrabold tracking-tight shrink-0">
-              HabitTube<span className="text-neutral-400 dark:text-neutral-600">.</span>
-            </h1>
-
-            {/* Desktop Tabs */}
-            <nav className="hidden md:flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`rounded-full px-4.5 py-1.5 text-sm font-semibold transition ${
-                    tab === t.id
-                      ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                      : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-2 ml-auto md:ml-0 md:gap-2.5">
-            <span
-              title={
-                syncStatus === 'synced'
-                  ? 'Synced to Supabase'
-                  : syncStatus === 'syncing'
-                    ? 'Syncing…'
-                    : 'Offline — saved on this device'
-              }
-              className="flex items-center gap-1.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500"
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  syncStatus === 'synced' ? 'bg-emerald-500' : syncStatus === 'syncing' ? 'animate-pulse bg-amber-500' : 'bg-neutral-300 dark:bg-neutral-600'
-                }`}
-              />
-              <span className="hidden sm:inline">{syncStatus === 'synced' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing' : 'Offline'}</span>
-            </span>
-            {focusActive && (
-              <button
-                onClick={() => setTab('today')}
-                title="Focus session — go to Today"
-                className="flex items-center gap-1.5 rounded-full border border-neutral-900 px-3 py-2 text-sm font-bold tabular-nums text-neutral-900 transition hover:bg-neutral-50 dark:border-white dark:text-white dark:hover:bg-neutral-900"
-              >
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-                {fmtClock(focus.remaining)}
-              </button>
-            )}
-            <button
-              onClick={() => exportExcel(data)}
-              title="Export to Excel"
-              className="hidden md:flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600 dark:hover:text-white"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-              </svg>
-              Export
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setNewMenu((v) => !v)}
-                className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-              >
-                + New
-              </button>
-              {newMenu && (
-                <>
-                  <button className="fixed inset-0 z-10 cursor-default" onClick={() => setNewMenu(false)} aria-hidden />
-                  <div className="glass-strong absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-2xl border p-1 shadow-xl">
-                    <button
-                      onClick={() => {
-                        setNewMenu(false)
-                        setModal('new')
-                      }}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800"
-                    >
-                      <svg className="h-4 w-4 shrink-0 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                      Habit <span className="text-xs font-normal text-neutral-400">recurring</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNewMenu(false)
-                        setWizard(true)
-                      }}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800"
-                    >
-                      <svg className="h-4 w-4 shrink-0 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                      Goal <span className="text-xs font-normal text-neutral-400">one-time</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-            <a
-              href="https://sumantsagar73.github.io/habitTube/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="User manual"
-              className="hidden md:flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
-            >
-              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-              </svg>
-            </a>
-            <NotificationCenter
-              notifications={data.notifications || []}
-              onMarkRead={markNotificationRead}
-              onMarkAllRead={markAllNotificationsRead}
-              onClear={clearNotifications}
-            />
-            <button
-              onClick={() => setSettings(true)}
-              title="Settings"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
-            >
-              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              title="Sign out"
-              className="hidden md:flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
-            >
-              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setData((d) => ({ ...d, theme: dark ? 'light' : 'dark' }))}
-              title="Toggle theme"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
-            >
-              {dark ? (
-                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="4.5" />
-                  <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19" />
-                </svg>
-              ) : (
-                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </header>
+        <AppHeader
+          tabs={TABS}
+          tab={tab}
+          onTab={setTab}
+          hidden={timerFs}
+          syncStatus={syncStatus}
+          focusClock={focusActive ? fmtClock(focus.remaining) : ''}
+          onFocusClick={() => setTab('today')}
+          onNewHabit={() => setModal('new')}
+          onNewGoal={() => setWizard(true)}
+          onNewArc={() => { setArcSeed(''); setArcWizard(true) }}
+          notifications={data.notifications || []}
+          onMarkRead={markNotificationRead}
+          onMarkAllRead={markAllNotificationsRead}
+          onClear={clearNotifications}
+          name={displayName(user)}
+          email={user?.email}
+          dark={dark}
+          onSettings={() => setSettings(true)}
+          onExport={() => exportExcel(data)}
+          onToggleTheme={() => setData((d) => ({ ...d, theme: dark ? 'light' : 'dark' }))}
+          onSignOut={() => supabase.auth.signOut()}
+        />
 
         {/* sub tabs row / actions for specific tabs (like Plan's Focus/Outline) */}
         {tab === 'plan' && !timerFs && (
@@ -992,12 +863,16 @@ export default function App() {
               motivation={data.ai.motivation}
               onSaveMotivation={setMotivation}
               name={displayName(user)}
+              arcs={data.arcs}
+              onNewArc={() => { setArcSeed(''); setArcWizard(true) }}
+              wrapUp={
+                !timerFs && (
+                  <DayCheckin data={data} onSave={(k, entry) => setData((d) => ({ ...d, dayCheckins: { ...(d.dayCheckins || {}), [k]: entry } }))} />
+                )
+              }
               afterCoach={
                 !timerFs && (
-                  <>
-                    <ArcsPanel data={data} compact onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
-                    <DayCheckin data={data} onSave={(k, entry) => setData((d) => ({ ...d, dayCheckins: { ...(d.dayCheckins || {}), [k]: entry } }))} />
-                  </>
+                  <ArcsPanel data={data} compact alertsOnly onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
                 )
               }
               onOpenCoach={(prompt) => { setCoachSeed(typeof prompt === 'string' ? prompt : ''); setTab('coach') }}
@@ -1075,19 +950,19 @@ export default function App() {
               aiInsightsCache={data.ai.insights}
               onSaveInsights={setInsights}
               appData={data}
-            />
-          )}
-          {tab === 'calendar' && (
-            <CalendarView
-              habits={data.habits}
-              completions={data.completions}
-              tasks={data.tasks}
-              moods={data.moods}
-              goals={data.goals}
-              onUpdateTask={updateTask}
-              onToggleTask={toggleTask}
-              onAddTask={addTask}
-              onDeleteTask={deleteTask}
+              historySlot={
+                <CalendarView
+                  habits={data.habits}
+                  completions={data.completions}
+                  tasks={data.tasks}
+                  moods={data.moods}
+                  goals={data.goals}
+                  onUpdateTask={updateTask}
+                  onToggleTask={toggleTask}
+                  onAddTask={addTask}
+                  onDeleteTask={deleteTask}
+                />
+              }
             />
           )}
           {tab === 'coach' && (
@@ -1116,13 +991,12 @@ export default function App() {
       {!timerFs && (
         <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden glass-bar border-t" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           {[
-            { id: 'today', label: 'Today', icon: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /> },
-            { id: 'plan', label: 'Plan', icon: <><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" /></> },
-            { id: 'habits', label: 'Habits', icon: <><path d="M17 1l-5 5-5-5" /><path d="M3 9l9 9 9-9" /><path d="M3 15l9 9 9-9" /></> },
-            { id: 'insights', label: 'Insights', icon: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></> },
-            { id: 'calendar', label: 'Cal', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></> },
-            { id: 'coach', label: 'Coach', icon: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></> },
-          ].map(({ id, label, icon }) => (
+            { id: 'today', label: 'Today', Icon: House },
+            { id: 'plan', label: 'Plan', Icon: Target },
+            { id: 'habits', label: 'Habits', Icon: Repeat },
+            { id: 'insights', label: 'Insights', Icon: ChartColumn },
+            { id: 'coach', label: 'Coach', Icon: MessageCircle },
+          ].map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
@@ -1132,9 +1006,7 @@ export default function App() {
                   : 'text-neutral-400 dark:text-neutral-600'
               }`}
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                {icon}
-              </svg>
+              <Icon className="h-5 w-5" strokeWidth={1.8} />
               {label}
             </button>
           ))}
@@ -1214,7 +1086,7 @@ export default function App() {
         />
       )}
       {settings && (
-        <SettingsModal
+        <SettingsPanel
           arcNotify={data.arcNotify !== false}
           onToggleArcNotify={() => setData((d) => ({ ...d, arcNotify: d.arcNotify === false }))}
           aiEnabled={data.aiEnabled}

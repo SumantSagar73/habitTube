@@ -5,12 +5,14 @@ const ghostBtn =
 
 // Active arcs as cards. `compact` (Today tab) shows a slim line per arc; the Plan
 // tab shows full cards, paused arcs and the "Start an arc" entry point.
-export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, onCheckin, onReview }) {
+export default function ArcsPanel({ data, compact = false, alertsOnly = false, onNew, onResolveArc, onCheckin, onReview }) {
   const arcs = data.arcs || []
   const active = activeArcs(arcs)
   const paused = arcs.filter((a) => a.status === 'paused')
 
   if (compact && !active.length) return null
+  const needsAction = (a) => pendingWeek(a) != null || needsReview(a) || staleDays(a, data) > 0
+  if (alertsOnly && !active.some(needsAction)) return null
 
   return (
     <section className="mb-6">
@@ -33,7 +35,7 @@ export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, 
       )}
 
       <div className="space-y-3">
-        {active.map((a) => {
+        {active.filter((a) => !alertsOnly || needsAction(a)).map((a) => {
           const { day, total, weekIdx, ended, pct } = arcDay(a)
           const wk = a.weeks?.[weekIdx] || {}
           const quiet = staleDays(a, data)

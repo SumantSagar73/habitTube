@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Timer } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import Select from './Select'
 
@@ -102,7 +103,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
             <>
               {isBreak && (
                 <span className="rounded-full bg-neutral-100 px-4 py-1.5 text-sm font-bold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-                  Break time ☕
+                  Break time
                 </span>
               )}
               <span className="font-mono font-extrabold leading-none tabular-nums tracking-tight text-neutral-900 dark:text-white"
@@ -193,7 +194,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
     <section className="glass rounded-3xl p-6">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
-          ⏱️ Focus
+          <Timer className="mr-1.5 inline h-3.5 w-3.5 align-[-2px]" />Focus
         </h3>
         <div className="flex items-center gap-2">
           {totalToday > 0 && (
@@ -226,7 +227,7 @@ export default function FocusTimer({ focus, goals, totalToday, todaySessions = [
         <div className="flex flex-col items-center gap-4 py-2">
           {isBreak && (
             <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-              Break time ☕
+              Break time
             </span>
           )}
           <span className="font-mono text-5xl font-extrabold tabular-nums tracking-tight text-neutral-900 dark:text-white">

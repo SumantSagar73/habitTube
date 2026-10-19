@@ -86,7 +86,7 @@ export default function GoalCard({ goal, ctx, parentTitle, onUpdate, onEdit, onD
                   : 'border border-neutral-200 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300'
               }`}
             >
-              {goal.done ? '✓ Done' : 'Mark done'}
+              {goal.done ? 'Done' : 'Mark done'}
             </button>
           )
         )}

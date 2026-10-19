@@ -4,6 +4,7 @@
 // arc: { id, title, why, startDate, endDate, status: 'active'|'paused'|'closed',
 //        weeks: [{ theme, milestone }], minDay, goalId, habitIds, resumedAt?, closedAt?, createdAt }
 import { GOAL_COLORS } from './palette'
+import { toIconKey } from './icons'
 import { currentPeriods, goalPercent, periodKeys } from './planUtils'
 import { addDays, dateKey, isDone, isScheduled, parseKey, todayKey, uid } from './utils'
 
@@ -70,7 +71,7 @@ export function normalizeArcPlan(raw, weeksCount) {
     .filter((h) => h.name)
     .slice(0, 5)
     .map((h) => ({
-      emoji: h.emoji || '💪',
+      emoji: toIconKey(h.emoji, 'sparkles'),
       name: h.name,
       days: Array.isArray(h.days) && h.days.length ? [...new Set(h.days.map(Number).filter((n) => n >= 0 && n <= 6))] : [0, 1, 2, 3, 4, 5, 6],
       time: /^\d{2}:\d{2}$/.test(h.time) ? h.time : '',

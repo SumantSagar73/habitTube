@@ -526,7 +526,7 @@ export default function PlanView({
                         reviews[key]?.done ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900' : 'border-neutral-200 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500'
                       }`}
                     >
-                      {reviews[key]?.done ? '✓ Reviewed' : 'Review'}
+                      {reviews[key]?.done ? 'Reviewed' : 'Review'}
                     </button>
                   )}
                 </div>
@@ -794,7 +794,7 @@ function WeekTask({ task, dk, linkGoals, habits = [], onToggleTask, onUpdateTask
           {habits.length > 0 && (
             <optgroup label="Habits">
               {habits.map((h) => (
-                <option key={h.id} value={`h_${h.id}`}>{h.emoji} {h.name}</option>
+                <option key={h.id} value={`h_${h.id}`}>{h.name}</option>
               ))}
             </optgroup>
           )}
@@ -851,7 +851,7 @@ function TaskAdder({ dk, linkGoals, habits = [], onAddTask }) {
           {habits.length > 0 && (
             <optgroup label="Habits">
               {habits.map((h) => (
-                <option key={h.id} value={`h_${h.id}`}>{h.emoji} {h.name}</option>
+                <option key={h.id} value={`h_${h.id}`}>{h.name}</option>
               ))}
             </optgroup>
           )}

@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { CalendarDays, TriangleAlert } from 'lucide-react'
+import { MoodIcon } from '../icons'
 import {
   Bar, BarChart, CartesianGrid, Cell,
   RadialBar, RadialBarChart,
@@ -15,7 +17,6 @@ import HabitCorrelation from './HabitCorrelation'
 import Heatmap from './Heatmap'
 import MoodHabitOverlay from './MoodHabitOverlay'
 
-const MOOD_FACE = { 1: '😣', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' }
 
 function MoodStrip({ moods }) {
   const days = []
@@ -33,7 +34,7 @@ function MoodStrip({ moods }) {
               title={d.toLocaleDateString()}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 text-lg dark:border-neutral-800"
             >
-              {v ? MOOD_FACE[v] : <span className="text-neutral-300 dark:text-neutral-700">·</span>}
+              {v ? <MoodIcon level={v} className="mx-auto h-4 w-4" /> : <span className="text-neutral-300 dark:text-neutral-700">·</span>}
             </div>
           )
         })}
@@ -165,7 +166,7 @@ function GoalProgressCard({ goal, ctx }) {
     >
       {isAtRisk && (
         <div className="mb-2 flex items-center gap-1.5 rounded-xl bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-950/20 dark:text-amber-400">
-          ⚠ {daysLeft === 0 ? 'Ends today' : `${daysLeft}d left`} · {pct}% complete
+          <TriangleAlert className="h-3 w-3" /> {daysLeft === 0 ? 'Ends today' : `${daysLeft}d left`} · {pct}% complete
         </div>
       )}
       <div className="flex items-start justify-between gap-3">
@@ -190,7 +191,7 @@ function GoalProgressCard({ goal, ctx }) {
         </div>
         {isDone ? (
           <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400">
-            ✓ Done
+            Done
           </span>
         ) : (
           <span className="shrink-0 font-mono text-sm font-extrabold tabular-nums text-neutral-800 dark:text-white">
@@ -325,7 +326,7 @@ function GoalChartView({ filteredGoals, ctx, dark }) {
                       />
                     </svg>
                     <span className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold tabular-nums" style={{ color: d.fill }}>
-                      {d.pct > 99 ? '✓' : `${d.pct}%`}
+                      {`${d.pct}%`}
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
@@ -333,7 +334,7 @@ function GoalChartView({ filteredGoals, ctx, dark }) {
                     <p className="text-[11px] font-medium text-neutral-400 dark:text-neutral-500">{d.level}</p>
                   </div>
                   <span className="shrink-0 font-mono text-sm font-extrabold tabular-nums" style={{ color: d.pct >= 100 ? '#10b981' : d.fill }}>
-                    {d.pct >= 100 ? '✓ Done' : `${d.pct}%`}
+                    {d.pct >= 100 ? 'Done' : `${d.pct}%`}
                   </span>
                 </div>
               ))}
@@ -403,13 +404,14 @@ export default function InsightsView({
   aiInsightsCache,
   onSaveInsights,
   appData,
+  historySlot,
 }) {
   const [levelFilter, setLevelFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState('all')
   const [goalChartMode, setGoalChartMode] = useState('cards') // 'cards' | 'chart'
   const [habitTab, setHabitTab] = useState('trends') // 'trends' | 'heatmap' | 'advanced'
-  const [activeSubTab, setActiveSubTab] = useState('overview') // 'overview' | 'habits' | 'goals' | 'focus'
+  const [activeSubTab, setActiveSubTab] = useState('overview') // 'overview' | 'habits' | 'goals' | 'history' | 'focus'
 
   const ctx = useMemo(() => ({ goals, tasks: tasks || {}, habits, completions }), [goals, tasks, habits, completions])
 
@@ -454,7 +456,7 @@ export default function InsightsView({
     }
   }, [filteredGoals, ctx])
   const perHabit = habits.map((h) => ({
-    name: `${h.emoji} ${h.name.length > 14 ? h.name.slice(0, 13) + '…' : h.name}`,
+    name: `${h.name.length > 14 ? h.name.slice(0, 13) + '…' : h.name}`,
     rate: habitRate(h, completions, 30),
   }))
 
@@ -486,6 +488,10 @@ export default function InsightsView({
           {
             id: 'goals', label: 'Goals',
             icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+          },
+          {
+            id: 'history', label: 'History',
+            icon: <CalendarDays className="h-4 w-4" strokeWidth={1.8} />,
           },
           {
             id: 'focus', label: 'Focus',
@@ -730,6 +736,7 @@ export default function InsightsView({
         </section>
       )}
 
+      {activeSubTab === 'history' && historySlot}
       {activeSubTab === 'focus' && (
         <div className="space-y-6">
           {appData && <FocusChart focusLog={appData.focusLog} dark={dark} />}

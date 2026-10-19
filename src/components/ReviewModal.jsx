@@ -120,7 +120,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
                   <div className="flex items-center justify-between gap-3">
                     <p className="truncate font-bold text-neutral-900 dark:text-white">{g.title}</p>
                     <span className={`shrink-0 text-sm font-extrabold tabular-nums ${hit ? 'text-neutral-900 dark:text-white' : 'text-neutral-400'}`}>
-                      {hit ? '✓ ' : ''}{pct}%
+                      {pct}%
                     </span>
                   </div>
                   {!hit && (
@@ -136,7 +136,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
                         disabled={alreadyCarried(g)}
                         className="shrink-0 rounded-full border border-neutral-200 px-3.5 py-1.5 text-xs font-bold text-neutral-700 transition hover:border-neutral-400 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
                       >
-                        {alreadyCarried(g) ? 'Carried ✓' : `Carry to ${nextLabel} →`}
+                        {alreadyCarried(g) ? 'Carried' : `Carry to ${nextLabel} →`}
                       </button>
                     </div>
                   )}
@@ -152,7 +152,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
         </h3>
         {unfinished.length === 0 ? (
           <p className="mb-6 rounded-2xl border border-dashed border-neutral-300 p-5 text-center text-sm font-medium text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
-            Nothing left hanging. Clean slate. 🎉
+            Nothing left hanging. Clean slate.
           </p>
         ) : (
           <div className="mb-6 space-y-2">
@@ -231,7 +231,7 @@ export default function ReviewModal({ level, periodKey, ctx, review, aiEnabled, 
               : 'bg-neutral-900 text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200'
           }`}
         >
-          {review?.done ? 'Reopen review' : 'Mark review complete ✓'}
+          {review?.done ? 'Reopen review' : 'Mark review complete'}
         </button>
       </div>
     </div>

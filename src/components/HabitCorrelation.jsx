@@ -43,9 +43,9 @@ export default function HabitCorrelation({ habits, completions }) {
         {pairs.map((p, i) => (
           <div key={i} className="flex items-center gap-3">
             <span className="min-w-0 flex-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-              {p.ha.emoji} {p.ha.name}{' '}
+              {p.ha.name}{' '}
               <span className="text-neutral-300 dark:text-neutral-700">+</span>{' '}
-              {p.hb.emoji} {p.hb.name}
+              {p.hb.name}
             </span>
             <div className="flex shrink-0 items-center gap-2">
               <div className="h-1.5 w-20 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">

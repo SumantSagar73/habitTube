@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Flame } from 'lucide-react'
+import { HabitIcon } from '../icons'
 import { fetchPublicSnapshot } from '../sync'
 import { currentStreak, habitRate } from '../utils'
 
@@ -114,11 +116,11 @@ export default function PublicProfile({ userId, onBack }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {topHabits.map((h) => (
                 <div key={h.id} className="flex items-center gap-3 rounded-2xl border border-neutral-100 p-3 dark:border-neutral-800">
-                  <span className="text-2xl">{h.emoji}</span>
+                  <HabitIcon value={h.emoji} className="h-6 w-6" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-neutral-900 dark:text-white">{h.name}</p>
                     <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500">
-                      🔥 {h.streak} · {h.rate}%
+                      <Flame className="mr-0.5 inline h-3.5 w-3.5 align-[-2px]" />{h.streak} · {h.rate}%
                     </p>
                   </div>
                 </div>

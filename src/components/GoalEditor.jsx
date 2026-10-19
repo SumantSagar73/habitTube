@@ -115,7 +115,7 @@ export default function GoalEditor({ initial, level, period, parents, habits, de
               <Select value={habitId} onChange={(e) => setHabitId(e.target.value)}>
                 {habits.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.emoji} {h.name}
+                    {h.name}
                   </option>
                 ))}
               </Select>

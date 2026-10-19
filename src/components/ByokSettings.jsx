@@ -50,7 +50,7 @@ export default function ByokSettings() {
     setMsg({ ok: true, text: '' })
     try {
       const ok = await aiTest()
-      setMsg(ok ? { ok: true, text: `✓ Connected to ${provider.label}` } : { ok: false, text: 'Got a reply, but not the expected one.' })
+      setMsg(ok ? { ok: true, text: `Connected to ${provider.label}` } : { ok: false, text: 'Got a reply, but not the expected one.' })
     } catch (e) {
       setMsg({ ok: false, text: e.message })
     } finally {

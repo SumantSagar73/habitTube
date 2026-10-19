@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import { activeArcs } from '../arcs'
 import { todayKey } from '../utils'
 
@@ -33,7 +34,7 @@ export default function DayCheckin({ data, onSave }) {
     const label = MATCH.find((m) => m.id === done.match)?.label
     return (
       <div className="mb-6 rounded-2xl border border-neutral-200 px-4 py-3 text-sm text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-        <span className="font-bold text-neutral-900 dark:text-white">Checked in ✓</span> {label}
+        <span className="font-bold text-neutral-900 dark:text-white"><Check className="mr-1 inline h-4 w-4 align-[-2px]" />Checked in</span> {label}
         {done.win ? ` · ${done.win}` : ''}
       </div>
     )
