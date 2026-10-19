@@ -54,17 +54,21 @@ export default function ManageView({ habits, completions, onOpen, onEdit, onDele
     )
   }
 
+  const avgRate = Math.round(habits.reduce((sum, h) => sum + habitRate(h, completions, 30), 0) / habits.length)
+
   return (
     <div className="space-y-2.5">
       {/* list / grid toggle */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
-          {view === 'list' ? 'Drag to reorder · click to open heatmap.' : 'Tap cells to tick habits across the days.'}
+          <span className="font-bold text-neutral-700 dark:text-neutral-200">{habits.length} habit{habits.length === 1 ? '' : 's'}</span>
+          {' · '}{avgRate}% over 30 days{' · '}
+          {view === 'list' ? 'drag to reorder, click for the heatmap' : 'tap cells to tick days'}
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowTemplates(true)}
-            className="rounded-full border border-neutral-200 px-3.5 py-1.5 text-xs font-bold text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
+            className="flex items-center gap-1.5 rounded-full border border-neutral-200 px-3.5 py-1.5 text-xs font-bold text-neutral-600 transition hover:border-neutral-400 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-600"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Library

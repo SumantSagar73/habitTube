@@ -128,13 +128,27 @@ const todayKey = () => {
 const DUE_HABIT = { id: 'h9', name: 'Stretch', emoji: 'stretch', days: [0, 1, 2, 3, 4, 5, 6], createdAt: '2020-01-01', time: '00:00' }
 
 test('Up next picks the due habit and Mark done clears it', async ({ page }) => {
-  await mockBackend(page, { seed: { habits: [DUE_HABIT] } })
+  // done yesterday, so strict mode doesn't lock today's habits (locked habits are never offered)
+  const y = new Date()
+  y.setDate(y.getDate() - 1)
+  const p = (n) => String(n).padStart(2, '0')
+  const yesterday = `${y.getFullYear()}-${p(y.getMonth() + 1)}-${p(y.getDate())}`
+  await mockBackend(page, { seed: { habits: [DUE_HABIT], completions: { [yesterday]: ['h9'] } } })
   await page.goto('/')
   const upNext = page.locator('section', { hasText: 'Up next' }).first()
   await expect(upNext).toContainText('Stretch')
   await expect(upNext).toContainText('Due at 12:00 AM')
   await upNext.getByRole('button', { name: 'Mark done' }).click()
   await expect(page.getByText('You’re clear for now.')).toBeVisible()
+})
+
+test('strict mode: a locked habit is never offered as Up next', async ({ page }) => {
+  // never done, so yesterday counts as missed and today's habits are locked
+  await mockBackend(page, { seed: { habits: [DUE_HABIT] } })
+  await page.goto('/')
+  await expect(page.getByText('Locked by strict mode')).toBeVisible()
+  const upNext = page.locator('section', { hasText: 'Up next' }).first()
+  await expect(upNext).not.toContainText('Stretch')
 })
 
 test('task rows hide their time and link pickers until asked', async ({ page }) => {

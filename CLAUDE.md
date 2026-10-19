@@ -64,6 +64,10 @@ Timer state (`focus`) lives entirely in `App.jsx` as local React state (not pers
 
 `AppHeader` (logo, 5 tabs, sync, New menu with Habit/Goal/Arc, bell, profile menu holding Settings/Export/Manual/Theme/Sign out). Settings is `SettingsPanel`: a large dialog with a section sidebar (General, Notifications, AI coach, Data & backup, Sharing).
 
+### Other tabs
+
+**Plan**: arcs are one row each (`ArcsPanel`, details and alerts on demand), the Cascade/Outline toggle sits in the period ribbon, and empty days in the week board collapse to a one-line row with + Add. **Habits** opens with a one-line summary (count, 30-day average). **Insights → Overview** leads with four KPIs (30-day completion, longest streak, 7-day focus, goal progress) and keeps Achievements collapsed.
+
 ### Design system
 
 Tailwind CSS 4, dark mode via the `dark` class on `<html>`. **Monochrome frosted glass**: white/black only, no accent hue. `index.css` defines (inside `@layer components`, so utilities like `border-neutral-900` can still override) `.glass` (frosted cards: translucent fill + backdrop blur), `.glass-strong` (modals, popovers, tooltips), `.glass-bar` (bottom nav), `.glow-mono` (the one high-contrast hero card) and `.app-bg` (fixed ambient glows behind the glass so the blur has something to frost). `var(--accent)` is just neutral-900/neutral-100. Primary buttons stay `neutral-900/white`. For new cards use `glass rounded-2xl p-4` instead of border + bg classes. `palette.js` `GOAL_COLORS` are the only colours (goal nodes). Today is deliberately lean: `TodayHeader` (greeting, one status line, 7 week dots), `UpNext` (the single thing to do now, chosen by `pickUpNext`), habit checklist, tasks (time/link pickers hidden behind a row options toggle), a slim strict-mode bar once misses are explained, a wrap-up card collapsed until 6pm, and a right column with `ArcCard`, the focus timer and `AICoach` (one-tap openers that start a seeded chat). Focus-blocker site rules live in Settings → Focus blocker. Clickable elements get a pointer cursor from a global rule in `index.css` (Tailwind 4 no longer does this).

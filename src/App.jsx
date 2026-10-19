@@ -795,31 +795,7 @@ export default function App() {
           onSignOut={() => supabase.auth.signOut()}
         />
 
-        {/* sub tabs row / actions for specific tabs (like Plan's Focus/Outline) */}
-        {tab === 'plan' && !timerFs && (
-          <div className="mt-6 mb-7 flex justify-end animate-fade-up">
-            <div className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800">
-              {[
-                ['cascade', 'Cascade'],
-                ['outline', 'Outline'],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  onClick={() => setPlanMode(id)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
-                    planMode === id
-                      ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                      : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tab !== 'plan' && <div className="h-6" />}
+        <div className="h-6" />
 
         <main className="animate-fade-up" key={tab}>
           <Suspense fallback={viewFallback}>

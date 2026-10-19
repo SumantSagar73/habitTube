@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { goalPercent, LEVEL_LABEL, LEVELS, periodLabel } from '../planUtils'
-import { addDays, dateKey, habitRate } from '../utils'
+import { addDays, currentStreak, dateKey, habitRate } from '../utils'
 import Achievements from './Achievements'
 import Select from './Select'
 import ActivityChart from './ActivityChart'
@@ -391,6 +391,36 @@ function GoalChartView({ filteredGoals, ctx, dark }) {
   )
 }
 
+function Kpi({ label, value, hint }) {
+  return (
+    <div className="glass rounded-2xl p-4">
+      <p className="text-xs font-semibold text-neutral-400 dark:text-neutral-500">{label}</p>
+      <p className="mt-1 text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white">{value}</p>
+      {hint && <p className="mt-0.5 text-xs font-medium text-neutral-400 dark:text-neutral-500">{hint}</p>}
+    </div>
+  )
+}
+
+// The four numbers worth glancing at before anything else.
+function OverviewKpis({ habits, completions, goals, ctx, focusLog = [] }) {
+  const completion = habits.length ? Math.round(habits.reduce((s, h) => s + habitRate(h, completions, 30), 0) / habits.length) : null
+  const best = habits.reduce((top, h) => {
+    const s = currentStreak(h, completions)
+    return s > top.s ? { s, name: h.name } : top
+  }, { s: 0, name: '' })
+  const since = dateKey(addDays(new Date(), -6))
+  const focusMin = focusLog.filter((f) => f.date >= since).reduce((s, f) => s + (f.minutes || 0), 0)
+  const goalAvg = goals.length ? Math.round(goals.reduce((s, g) => s + goalPercent(g, ctx), 0) / goals.length) : null
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Kpi label="Completion, 30 days" value={completion == null ? '—' : `${completion}%`} hint={`${habits.length} habit${habits.length === 1 ? '' : 's'}`} />
+      <Kpi label="Longest current streak" value={best.s ? `${best.s} day${best.s === 1 ? '' : 's'}` : '—'} hint={best.name} />
+      <Kpi label="Focus, last 7 days" value={`${Math.floor(focusMin / 60)}h ${String(focusMin % 60).padStart(2, '0')}m`} />
+      <Kpi label="Goal progress" value={goalAvg == null ? '—' : `${goalAvg}%`} hint={goals.length ? `${goals.length} goal${goals.length === 1 ? '' : 's'}` : 'no goals yet'} />
+    </div>
+  )
+}
+
 export default function InsightsView({
   habits,
   completions,
@@ -514,6 +544,7 @@ export default function InsightsView({
       </div>
       {activeSubTab === 'overview' && (
         <div className="space-y-6">
+          <OverviewKpis habits={habits} completions={completions} goals={goals} ctx={ctx} focusLog={appData?.focusLog} />
           <AIInsights
             enabled={aiEnabled}
             model={aiModel}

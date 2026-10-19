@@ -24,6 +24,23 @@ const ARC_PLAN = {
   minDay: '10-minute walk',
 }
 
+// Weekly check-in and arc review replies (matched by their system prompt below).
+const WEEK_PLAN = {
+  note: 'Good base — nudging the volume up a little.',
+  milestone: 'Run 2 km, 8 pushups',
+  tasks: [
+    [0, 'Run 1.5 km steady', 'h'],
+    [1, 'Pushups 4x6', 'm'],
+    [3, 'Run 2 km easy', 'm'],
+  ],
+}
+const REVIEW = {
+  summary: 'You showed up most weeks and the numbers moved.',
+  wins: ['Kept the morning run going'],
+  lessons: ['Late evenings were the weak spot'],
+  next: { theme: 'Strength base', why: 'Build on the running habit' },
+}
+
 const sse = (text) => `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`
 
 // seed: extra fields merged into the initial saved state (e.g. habits).
@@ -54,14 +71,18 @@ export async function mockBackend(page, { signedIn = true, seed = {} } = {}) {
     return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' })
   })
 
-  // AI: arc requests (JSON mode) get a plan, streaming gets SSE, the rest plain text.
+  // AI: JSON-mode requests get an arc plan / week plan / review (by system prompt), streaming gets SSE, the rest plain text.
   await page.route('**/ai/chat/completions', (route) => {
     const body = JSON.parse(route.request().postData() || '{}')
     ai.calls.push(body)
     if (body.stream) {
       return route.fulfill({ status: 200, contentType: 'text/event-stream', body: sse('Mocked coach reply.') })
     }
-    const content = body.response_format ? JSON.stringify(ARC_PLAN) : 'Mocked motivation.'
+    const system = String(body.messages?.[0]?.content || '')
+    let content = 'Mocked motivation.'
+    if (body.response_format) {
+      content = JSON.stringify(system.includes('NEXT week') ? WEEK_PLAN : system.includes('reviewing a finished arc') ? REVIEW : ARC_PLAN)
+    }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ choices: [{ message: { content } }] }) })
   })
 

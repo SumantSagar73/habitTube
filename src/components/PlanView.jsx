@@ -101,6 +101,30 @@ function PeriodCard({ label, sub, pct, health, active, onClick }) {
   )
 }
 
+function ViewToggle({ mode, onChange }) {
+  return (
+    <div className="flex gap-1 rounded-full border border-neutral-200 p-1 dark:border-neutral-800" role="group" aria-label="Plan view">
+      {[
+        ['cascade', 'Cascade'],
+        ['outline', 'Outline'],
+      ].map(([id, label]) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          aria-pressed={mode === id}
+          className={`rounded-full px-3.5 py-1 text-xs font-bold transition ${
+            mode === id
+              ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+              : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function CascadeRibbon({ crumbs, ctx, onJump }) {
   return (
     <div className="flex flex-wrap items-center gap-0.5">
@@ -160,6 +184,7 @@ export default function PlanView({
   aiEnabled,
   aiModel,
   planMode,
+  setPlanMode,
 }) {
   const now = currentPeriods()
   // Open directly at the current week — day-to-day planning happens here.
@@ -372,6 +397,8 @@ export default function PlanView({
         </button>
       )}
       {planMode === 'outline' ? (
+        <>
+        <div className="mb-4 flex justify-end"><ViewToggle mode={planMode} onChange={setPlanMode} /></div>
         <PlanTree
           goals={goals}
           ctx={ctx}
@@ -380,6 +407,7 @@ export default function PlanView({
           onDelete={onDeleteGoal}
           onAddSub={addSub}
         />
+        </>
       ) : (
         <>
           {/* cascade ribbon + period nav */}
@@ -397,6 +425,7 @@ export default function PlanView({
                 ↩ This week
               </button>
             )}
+            <div className="ml-auto"><ViewToggle mode={planMode} onChange={setPlanMode} /></div>
           </div>
 
           {/* Two-column layout: left = sidebar (progress + quarters), right = goals + tasks */}
@@ -468,9 +497,9 @@ export default function PlanView({
                 </div>
 
                 {here.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm font-medium text-neutral-400 dark:border-neutral-700 dark:text-neutral-500">
-                    No {LEVEL_LABEL[level].toLowerCase()} goals yet. Break down what "{periodLabel(level, key)}" should achieve.
-                  </div>
+                  <p className="px-1 text-sm font-medium text-neutral-400 dark:text-neutral-500">
+                    No {LEVEL_LABEL[level].toLowerCase()} goals yet. Break down what “{periodLabel(level, key)}” should achieve.
+                  </p>
                 ) : (
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     {here.map((g) => (
@@ -614,18 +643,20 @@ function WeekBoard({ week, tasks, linkGoals, habits = [], onAddTask, onToggleTas
   const days = daysOfWeek(week)
   const today = todayKey()
   const [dragOverDay, setDragOverDay] = useState(null)
+  const [opened, setOpened] = useState(() => new Set()) // empty days the user expanded to add a task
 
   return (
     <section>
       <h3 className="mb-1 text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Daily tasks</h3>
       <p className="mb-3 text-xs font-medium text-neutral-400 dark:text-neutral-500">
-        Drag a task to another day, or reorder within its priority group. Use → for a quick bump to tomorrow.
+        Drag a task onto another day, or use → to bump it to tomorrow.
       </p>
-      <div className="grid gap-2.5 lg:grid-cols-2">
+      <div className="grid items-start gap-2.5 lg:grid-cols-2">
         {days.map((d) => {
           const dk = dateKey(d)
           const list = tasks[dk] || []
           const isOver = dragOverDay === dk
+          const slim = list.length === 0 && dk !== today && !opened.has(dk)
           return (
             <div
               key={dk}
@@ -637,16 +668,26 @@ function WeekBoard({ week, tasks, linkGoals, habits = [], onAddTask, onToggleTas
                 setDragOverDay(null)
                 if (data && data.fromDay !== dk) onMoveTask(data.fromDay, dk, data.taskId)
               }}
-              className={`rounded-2xl border p-4 transition ${
+              className={`rounded-2xl border transition ${slim ? 'px-4 py-2.5' : 'p-4'} ${
                 isOver
                   ? 'border-neutral-900 ring-2 ring-neutral-900/10 dark:border-white dark:ring-white/10'
                   : dk === today ? 'border-neutral-900 dark:border-white' : 'border-neutral-200 dark:border-neutral-800'
               } glass`}
             >
-              <p className="mb-2 text-sm font-bold text-neutral-900 dark:text-white">
-                {formatNice(dk)} {dk === today && <span className="text-neutral-400">· today</span>}
-              </p>
-              {list.length === 0 ? (
+              <div className={`flex items-center justify-between gap-2 ${slim ? '' : 'mb-2'}`}>
+                <p className={`text-sm font-bold ${slim ? 'text-neutral-500 dark:text-neutral-400' : 'text-neutral-900 dark:text-white'}`}>
+                  {formatNice(dk)} {dk === today && <span className="text-neutral-400">· today</span>}
+                </p>
+                {slim && (
+                  <button
+                    onClick={() => setOpened((s) => new Set(s).add(dk))}
+                    className="rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+              {slim ? null : list.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-neutral-200 py-3 text-center text-xs font-medium text-neutral-300 dark:border-neutral-800 dark:text-neutral-600">
                   Drop a task here
                 </p>
@@ -682,7 +723,7 @@ function WeekBoard({ week, tasks, linkGoals, habits = [], onAddTask, onToggleTas
                   })}
                 </div>
               )}
-              <TaskAdder dk={dk} linkGoals={linkGoals} habits={habits} onAddTask={onAddTask} />
+              {!slim && <TaskAdder dk={dk} linkGoals={linkGoals} habits={habits} onAddTask={onAddTask} />}
             </div>
           )
         })}

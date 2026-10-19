@@ -45,7 +45,7 @@ export default function ArcReview({ arc, data, aiEnabled, onFinish, onClose }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-6 shadow-2xl">
+      <div role="dialog" aria-label="Arc review" className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-extrabold text-neutral-900 dark:text-white">Arc review</h2>

@@ -214,7 +214,7 @@ export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResol
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm dark:bg-black/60"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-6 shadow-2xl">
+      <div role="dialog" aria-label="Start an arc" className="max-h-[90vh] w-full max-w-lg overflow-y-auto glass-strong rounded-3xl p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-neutral-900 dark:text-white">Start an arc</h2>
           <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 dark:hover:text-white" aria-label="Close"><X className="h-4 w-4" /></button>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { computeBadges, computeStats } from '../achievements'
 import { HabitIcon } from '../icons'
 
@@ -5,11 +6,12 @@ export default function Achievements({ data }) {
   const stats = computeStats(data)
   const badges = computeBadges(stats)
   const earned = badges.filter((b) => b.earned).length
+  const [open, setOpen] = useState(false)
 
   return (
     <section className="glass rounded-3xl p-6">
       {/* level bar */}
-      <div className="mb-5 flex items-center gap-4">
+      <div className={`flex items-center gap-4 ${open ? 'mb-5' : ''}`}>
         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">
           <span className="text-[9px] font-bold uppercase tracking-wider opacity-70">Lvl</span>
           <span className="text-xl font-extrabold leading-none">{stats.level}</span>
@@ -17,9 +19,13 @@ export default function Achievements({ data }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between">
             <h3 className="text-lg font-extrabold tracking-tight text-neutral-900 dark:text-white">Achievements</h3>
-            <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500">
-              {earned}/{badges.length} unlocked
-            </span>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              className="text-xs font-bold text-neutral-400 underline-offset-2 transition hover:text-neutral-900 hover:underline dark:text-neutral-500 dark:hover:text-white"
+            >
+              {open ? 'Hide badges' : `${earned}/${badges.length} unlocked · show`}
+            </button>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
             <div className="h-full rounded-full bg-neutral-900 transition-all duration-500 dark:bg-white" style={{ width: `${stats.levelProgress}%` }} />
@@ -31,7 +37,7 @@ export default function Achievements({ data }) {
       </div>
 
       {/* badge grid */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+      {open && <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {badges.map((b) => (
           <div
             key={b.id}
@@ -55,7 +61,7 @@ export default function Achievements({ data }) {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </section>
   )
 }
