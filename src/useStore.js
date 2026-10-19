@@ -29,6 +29,8 @@ const DEFAULT_DATA = {
   focusAllowlist: [], // domains allowed during a focus session (Focus blocker extension)
   focusBlocklist: ['youtube.com'], // off-limits domains — hard-blocked, no temp-allow escape
   shareProfile: false, // when true, push public snapshot for sharing
+  arcs: [], // time-boxed arcs, see arcs.js
+  arcNotify: true, // nudge when an arc goes quiet or is about to end
 }
 
 function load() {

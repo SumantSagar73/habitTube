@@ -19,6 +19,8 @@ export default function SettingsModal({
   onSetModel,
   onToggleReminders,
   onToggleSound,
+  arcNotify,
+  onToggleArcNotify,
   onSetTheme,
   onRestore,
   onClose,
@@ -304,6 +306,20 @@ export default function SettingsModal({
             className={`relative h-7 w-12 rounded-full transition ${soundEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
           >
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${soundEnabled ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <p className="font-bold text-neutral-900 dark:text-white">Arc nudges</p>
+            <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
+              Notify me when an arc goes quiet or is about to end
+            </p>
+          </div>
+          <button
+            onClick={onToggleArcNotify}
+            className={`relative h-7 w-12 rounded-full transition ${arcNotify ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+          >
+            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${arcNotify ? 'left-6' : 'left-1'}`} />
           </button>
         </div>
         {remindersEnabled && notifBlocked && (

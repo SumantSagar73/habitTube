@@ -7,6 +7,8 @@ import CalendarView from './components/CalendarView'
 import CoachChat from './components/CoachChat'
 import CoachWidget from './components/CoachWidget'
 import { fmtClock } from './components/FocusTimer'
+import ArcWizard from './components/ArcWizard'
+import ArcsPanel from './components/ArcsPanel'
 import GoalWizard from './components/GoalWizard'
 import HabitDetail from './components/HabitDetail'
 import HabitModal from './components/HabitModal'
@@ -17,6 +19,7 @@ import PlanView from './components/PlanView'
 import PWABanner from './components/PWABanner'
 import SettingsModal from './components/SettingsModal'
 import TodayView from './components/TodayView'
+import { buildArcPatch } from './arcs'
 import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
@@ -51,6 +54,7 @@ export default function App() {
   const [detailId, setDetailId] = useState(null)
   const [newMenu, setNewMenu] = useState(false)
   const [wizard, setWizard] = useState(false)
+  const [arcWizard, setArcWizard] = useState(false)
   const [settings, setSettings] = useState(false)
   const [focus, setFocus] = useState(() => {
     try {
@@ -579,6 +583,33 @@ export default function App() {
     })
   }
 
+  // Create an arc: a month goal + week goal + habits + week-1 tasks, all tagged with the arc id.
+  function applyArc(plan) {
+    setData((d) => {
+      const { arc, goals, habits, tasksByDay } = buildArcPatch(d, plan)
+      const tasks = { ...d.tasks }
+      for (const [k, arr] of Object.entries(tasksByDay)) tasks[k] = [...(tasks[k] || []), ...arr]
+      return { ...d, arcs: [...(d.arcs || []), arc], goals: [...d.goals, ...goals], habits: [...d.habits, ...habits], tasks }
+    })
+  }
+
+  // Resume / pause / close an arc. Resuming counts as activity (resets the quiet timer).
+  function resolveArc(id, action) {
+    const status = { resume: 'active', pause: 'paused', close: 'closed' }[action]
+    if (!status) return
+    setData((d) => ({
+      ...d,
+      arcs: (d.arcs || []).map((a) =>
+        a.id !== id ? a : {
+          ...a,
+          status,
+          ...(action === 'resume' ? { resumedAt: todayKey() } : {}),
+          ...(action === 'close' ? { closedAt: todayKey() } : {}),
+        }
+      ),
+    }))
+  }
+
   function updateGoal(id, patch) {
     setData((d) => ({ ...d, goals: d.goals.map((g) => (g.id === id ? { ...g, ...patch } : g)) }))
   }
@@ -875,6 +906,9 @@ export default function App() {
         {tab !== 'plan' && <div className="h-6" />}
 
         <main className="animate-fade-up" key={tab}>
+          {(tab === 'today' || tab === 'plan') && !timerFs && (
+            <ArcsPanel data={data} compact={tab === 'today'} onNew={() => setArcWizard(true)} onResolveArc={resolveArc} />
+          )}
           {tab === 'today' && (
             <TodayView
               habits={data.habits}
@@ -1077,8 +1111,23 @@ export default function App() {
           onClose={() => setWizard(false)}
         />
       )}
+      {arcWizard && (
+        <ArcWizard
+          data={data}
+          aiEnabled={data.aiEnabled}
+          onApply={(plan) => {
+            applyArc(plan)
+            setArcWizard(false)
+            setTab('plan')
+          }}
+          onResolveArc={resolveArc}
+          onClose={() => setArcWizard(false)}
+        />
+      )}
       {settings && (
         <SettingsModal
+          arcNotify={data.arcNotify !== false}
+          onToggleArcNotify={() => setData((d) => ({ ...d, arcNotify: d.arcNotify === false }))}
           aiEnabled={data.aiEnabled}
           aiModel={data.aiModel}
           remindersEnabled={data.remindersEnabled}

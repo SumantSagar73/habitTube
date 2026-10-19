@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { playNotification } from './sounds'
 import { habitsForDate, isDone, todayKey, dateKey } from './utils'
 import { goalPercent, currentPeriods } from './planUtils'
+import { staleDays } from './arcs'
 
 // Push a notification into data.notifications (dedup by id).
 // Returns true if it was actually new (so caller can play sound).
@@ -76,6 +77,36 @@ export default function useNotifications(data, setData) {
       }, sound)
     }
 
+    // --- arcs: gone quiet, or ending within 3 days (user can turn these off) ---
+    if (data.arcNotify !== false) {
+      for (const arc of data.arcs || []) {
+        if (arc.status !== 'active') continue
+        const quiet = staleDays(arc, data, key)
+        if (quiet) {
+          push(setData, {
+            id: `arc-quiet-${arc.id}-${Math.floor(quiet / 3)}`,
+            type: 'arc',
+            title: `🧭 “${arc.title}” has gone quiet`,
+            body: `${quiet} days without progress. Resume, pause or close it from the Plan tab.`,
+            createdAt: Date.now(),
+            read: false,
+          }, sound)
+          continue
+        }
+        const left = Math.ceil((new Date(arc.endDate) - now) / 86400000)
+        if (left >= 0 && left <= 3) {
+          push(setData, {
+            id: `arc-ending-${arc.id}`,
+            type: 'arc',
+            title: `🏁 “${arc.title}” ends in ${left} day${left === 1 ? '' : 's'}`,
+            body: 'Finish strong, then close it and plan your next arc.',
+            createdAt: Date.now(),
+            read: false,
+          }, sound)
+        }
+      }
+    }
+
     // --- pending tasks reminder at midday ---
     if (hm >= '12:00' && hm < '12:30') {
       const todays = data.tasks[key] || []
@@ -92,5 +123,5 @@ export default function useNotifications(data, setData) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.habits, data.completions, data.goals, data.tasks])
+  }, [data.habits, data.completions, data.goals, data.tasks, data.arcs, data.arcNotify])
 }

@@ -1,6 +1,7 @@
 import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from './planUtils'
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
+import { normalizeArcPlan } from './arcs'
 
 export const DEFAULT_MODEL = 'openai/gpt-oss-120b'
 // Hosted models. The provider is implied by the model id (the server picks the
@@ -29,19 +30,21 @@ async function aiHeaders() {
 // Saved settings may name a retired model; fall back so the proxy allowlist doesn't reject it.
 export const safeModel = (m) => (AI_MODELS.some((x) => x.id === m) ? m : DEFAULT_MODEL)
 
-async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450 } = {}) {
+async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450, json = false } = {}) {
   model = safeModel(model)
   let res
   try {
     res = await fetch('/ai/chat/completions', {
       method: 'POST',
       headers: await aiHeaders(),
-      body: JSON.stringify({ model, messages, temperature, max_tokens }),
+      body: JSON.stringify({ model, messages, temperature, max_tokens, ...(json ? { response_format: { type: 'json_object' } } : {}) }),
     })
   } catch {
     throw new Error('Could not reach the AI. Check your connection and try again.')
   }
   const text = await res.text()
+  // Some models reject JSON mode — retry once as plain text; callers parse leniently.
+  if (json && res.status === 400) return chat(messages, { model, temperature, max_tokens, json: false })
   if (!res.ok) {
     if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check the provider API key.')
     if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
@@ -183,6 +186,42 @@ export function aiReview(data, model) {
 export async function aiTest(model) {
   const out = await chat([{ role: 'user', content: 'Reply with exactly: ok' }], { model, max_tokens: 5, temperature: 0 })
   return out.toLowerCase().includes('ok')
+}
+
+// ---- arcs ----
+const ARC_SYSTEM = `You design a focused, realistic "arc": a time-boxed push the user named themselves. Reply with ONLY one JSON object, no prose, no code fences.
+Schema (compact arrays, keep every string under 9 words):
+{"title":"short arc name","why":"one sentence, their words","weeks":[["theme","milestone"], ...exactly N entries],"target":["measurable month goal",number,"unit"] or null,"habits":[["emoji","habit name",[days 0=Sun..6],"HH:MM or empty"], ...2 to 4],"tasks":[[dayOffset 0-6,"task","h|m|l"], ...max 8, next 7 days only],"minDay":"the 15-minute version of a day for bad days"}
+Rules: size everything to the user's daily time and past obstacles; ramp difficulty week by week; prefer habits over many tasks; week 1 should be easy to start.`
+
+function arcContext({ habits = [], completions = {}, goals = [] }) {
+  const h = habits.slice(0, 8).map((x) => `${x.name} ${habitRate(x, completions, 30)}%`).join(', ')
+  const g = goals.filter((x) => !x.done).slice(0, 5).map((x) => x.title).join(', ')
+  return [h && `Current habits (30d rate): ${h}.`, g && `Open goals: ${g}.`].filter(Boolean).join(' ')
+}
+
+// answers: { theme, outcome, weeks, dailyTime, obstacles[], extra }
+export async function aiGenerateArc(answers, data, model) {
+  const user = [
+    `Arc theme: ${answers.theme}.`,
+    answers.outcome ? `Success looks like: ${answers.outcome}.` : '',
+    `Length: ${answers.weeks} weeks (N=${answers.weeks}). Starts today (${todayKey()}).`,
+    `Daily time available: ${answers.dailyTime}.`,
+    answers.obstacles?.length ? `What failed before: ${answers.obstacles.join(', ')}.` : '',
+    answers.extra ? `Notes: ${answers.extra}` : '',
+    arcContext(data),
+  ].filter(Boolean).join('\n')
+  const out = await chat(
+    [{ role: 'system', content: ARC_SYSTEM }, { role: 'user', content: user }],
+    { model, temperature: 0.6, max_tokens: 2500, json: true }
+  )
+  const start = out.indexOf('{')
+  const end = out.lastIndexOf('}')
+  let raw = null
+  try { raw = JSON.parse(out.slice(start, end + 1)) } catch { /* handled below */ }
+  const plan = normalizeArcPlan(raw, answers.weeks)
+  if (!plan) throw new Error('The AI reply could not be read as a plan. Try again.')
+  return plan
 }
 
 // ---- conversational coach ----
