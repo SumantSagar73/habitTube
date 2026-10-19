@@ -212,6 +212,37 @@ function GoalProgressCard({ goal, ctx }) {
 }
 
 // ── GoalChartView ──────────────────────────────────────────────────────────
+function RadialTooltip({ active, payload, bg, border }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  return (
+    <div style={{ background: bg, border: `1px solid ${border}` }}
+      className="rounded-xl px-3 py-2 text-sm shadow-lg">
+      <div className="flex items-center gap-2 mb-0.5">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.fill }} />
+        <p className="font-bold text-neutral-900 dark:text-white">{d.name}</p>
+      </div>
+      <p className="text-neutral-500 dark:text-neutral-400 ml-[18px]">
+        {d.pct}% complete · {d.level}
+      </p>
+    </div>
+  )
+}
+
+function LevelTooltip({ active, payload, label, bg, border }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: bg, border: `1px solid ${border}` }}
+      className="rounded-xl px-3 py-2 text-sm shadow-lg">
+      <p className="font-bold text-neutral-900 dark:text-white">{label} goals</p>
+      <p className="text-neutral-500 dark:text-neutral-400">
+        {payload[0].value}% avg · {payload[0].payload.count} goal{payload[0].payload.count > 1 ? 's' : ''}
+      </p>
+    </div>
+  )
+}
+
+
 function GoalChartView({ filteredGoals, ctx, dark }) {
   // ── 1. Radial arcs data (one ring per goal, capped at 100)
   const radialData = filteredGoals.map((g) => ({
@@ -234,36 +265,6 @@ function GoalChartView({ filteredGoals, ctx, dark }) {
   const gridColor = dark ? '#262626' : '#e5e5e5'
   const tooltipBg = dark ? '#161616' : '#ffffff'
   const tooltipBorder = dark ? '#404040' : '#e5e5e5'
-
-  const RadialTooltip = ({ active, payload }) => {
-    if (!active || !payload?.length) return null
-    const d = payload[0].payload
-    return (
-      <div style={{ background: tooltipBg, border: `1px solid ${tooltipBorder}` }}
-        className="rounded-xl px-3 py-2 text-sm shadow-lg">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.fill }} />
-          <p className="font-bold text-neutral-900 dark:text-white">{d.name}</p>
-        </div>
-        <p className="text-neutral-500 dark:text-neutral-400 ml-[18px]">
-          {d.pct}% complete · {d.level}
-        </p>
-      </div>
-    )
-  }
-
-  const LevelTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div style={{ background: tooltipBg, border: `1px solid ${tooltipBorder}` }}
-        className="rounded-xl px-3 py-2 text-sm shadow-lg">
-        <p className="font-bold text-neutral-900 dark:text-white">{label} goals</p>
-        <p className="text-neutral-500 dark:text-neutral-400">
-          {payload[0].value}% avg · {payload[0].payload.count} goal{payload[0].payload.count > 1 ? 's' : ''}
-        </p>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-8">
@@ -301,7 +302,7 @@ function GoalChartView({ filteredGoals, ctx, dark }) {
                       <Cell key={i} fill={entry.fill} />
                     ))}
                   </RadialBar>
-                  <Tooltip content={<RadialTooltip />} />
+                  <Tooltip content={<RadialTooltip bg={tooltipBg} border={tooltipBorder} />} />
                 </RadialBarChart>
               </ResponsiveContainer>
             </div>
@@ -362,7 +363,7 @@ function GoalChartView({ filteredGoals, ctx, dark }) {
                 type="category" dataKey="level" width={70}
                 tick={{ fill: axisColor, fontSize: 12, fontWeight: 700 }} tickLine={false} axisLine={false}
               />
-              <Tooltip content={<LevelTooltip />} cursor={{ fill: dark ? '#ffffff08' : '#00000008' }} />
+              <Tooltip content={<LevelTooltip bg={tooltipBg} border={tooltipBorder} />} cursor={{ fill: dark ? '#ffffff08' : '#00000008' }} />
               <Bar dataKey="avg" radius={[0, 8, 8, 0]} barSize={28} label={false}>
                 {levelData.map((entry, i) => {
                   // soft gradient-like colors per level tier

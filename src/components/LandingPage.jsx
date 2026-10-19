@@ -18,7 +18,7 @@ export default function LandingPage({ onOpenAuth }) {
   const [timerKey, setTimerKey] = useState(0)
 
   useEffect(() => {
-    if (!running) { setRemaining(duration * 60); return }
+    if (!running) return
     const id = setInterval(() => {
       const left = Math.max(0, Math.round((endAtRef.current - Date.now()) / 1000))
       setRemaining(left)
@@ -32,10 +32,8 @@ export default function LandingPage({ onOpenAuth }) {
     return () => clearInterval(id)
   }, [running, timerKey])
 
-  // sync display when idle + duration changes
-  useEffect(() => {
-    if (!running) setRemaining(duration * 60)
-  }, [duration, running])
+  // idle display follows the chosen duration; running display follows the ticking state
+  const shownRemaining = running ? remaining : duration * 60
 
   function start() {
     endAtRef.current = Date.now() + duration * 60 * 1000
@@ -45,8 +43,8 @@ export default function LandingPage({ onOpenAuth }) {
   }
   function stop() { setRunning(false); setRemaining(duration * 60); endAtRef.current = null }
 
-  const active = running || (remaining < duration * 60 && remaining > 0)
-  const pct = active ? Math.round((1 - remaining / (duration * 60)) * 100) : 0
+  const active = running || (shownRemaining < duration * 60 && shownRemaining > 0)
+  const pct = active ? Math.round((1 - shownRemaining / (duration * 60)) * 100) : 0
 
   return (
     <>
@@ -115,7 +113,7 @@ export default function LandingPage({ onOpenAuth }) {
                 className="font-mono font-extrabold tabular-nums leading-none text-neutral-900 dark:text-white"
                 style={{ fontSize: 'clamp(3.5rem, 20vw, 5.5rem)' }}
               >
-                {fmtClock(remaining)}
+                {fmtClock(shownRemaining)}
               </span>
               {subject && (
                 <p className="mt-2 text-sm font-medium text-neutral-400 dark:text-neutral-500">{subject}</p>

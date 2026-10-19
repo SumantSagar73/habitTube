@@ -136,10 +136,12 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
   }, [messages, streaming])
 
   // Reset input error on session switch
-  useEffect(() => {
+  const [seenChatId, setSeenChatId] = useState(activeChatId)
+  if (seenChatId !== activeChatId) {
+    setSeenChatId(activeChatId)
     setError('')
     setStreaming(null)
-  }, [activeChatId])
+  }
 
   function upsertSession(sessionId, patch) {
     onSetChatSessions((prev) => {

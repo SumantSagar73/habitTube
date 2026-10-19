@@ -21,7 +21,7 @@ export default function useSync(data, setData, userId) {
     userIdRef.current = resolvedId
     pulled.current = false
     lastJson.current = null
-    if (!resolvedId) { setStatus('offline'); pulled.current = true; return }
+    if (!resolvedId) { pulled.current = true; return }
     let cancelled = false
     ;(async () => {
       setStatus('syncing')
@@ -87,5 +87,5 @@ export default function useSync(data, setData, userId) {
     return () => clearTimeout(t)
   }, [data])
 
-  return status
+  return resolvedId ? status : 'offline'
 }
