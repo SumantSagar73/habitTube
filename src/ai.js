@@ -1,7 +1,7 @@
 import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from './planUtils'
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
-import { normalizeArcPlan } from './arcs'
+import { normalizeArcPlan, normalizeWeekPlan } from './arcs'
 
 export const DEFAULT_MODEL = 'openai/gpt-oss-120b'
 // Hosted models. The provider is implied by the model id (the server picks the
@@ -197,6 +197,8 @@ Quality bar:
 - Start at the user's stated level, then ramp every week (about 10-20% more volume or difficulty). Later weeks must differ from week 1.
 - Week milestones must be measurable. If the user's outcome contains a number, "target" must use it.
 - tasks = a real schedule for the next 7 days that fits the daily time, with rest days where sensible. Habits are small daily anchors, different from the tasks.
+- Week 1 tasks must match the week 1 milestone numbers exactly (a 1 km milestone means 1 km runs, not 2 km).
+- Habits must fit the stated daily time and situation. Do not invent wake-up, sleep or diet habits unless the user asked.
 - Keep each string under 14 words.`
 
 function arcContext({ habits = [], completions = {}, goals = [] }) {
@@ -226,6 +228,46 @@ export async function aiGenerateArc(answers, data, model) {
   let raw = null
   try { raw = JSON.parse(out.slice(start, end + 1)) } catch { /* handled below */ }
   const plan = normalizeArcPlan(raw, answers.weeks)
+  if (!plan) throw new Error('The AI reply could not be read as a plan. Try again.')
+  // Remembered on the arc so weekly check-ins can plan at the same scale.
+  plan.meta = { dailyTime: answers.dailyTime, level: answers.level, outcome: answers.outcome, extra: answers.extra }
+  return plan
+}
+
+const WEEK_SYSTEM = `You are an expert coach planning the NEXT week of a user's arc after a check-in. Reply with ONLY one JSON object, no prose, no code fences.
+Schema: {"note":"one sentence reacting to how last week went","milestone":"measurable milestone for this week","tasks":[[dayOffset 0-6,"specific session, with duration","h|m|l"], ...8 to 14]}
+Rules:
+- Adapt to the data: completion under 50% or "too hard" -> cut volume about 20% (never below 70% of last week) and simplify; over 85% and "too easy" -> add 15-20%; otherwise ramp about 10%.
+- Address the blocker they named with a concrete change to the schedule, not advice.
+- Tasks must add up to this week's milestone (use its numbers) and must not repeat last week's tasks verbatim.
+- Be specific: real exercises, topics, sets, minutes. Each session should be worth doing (10+ minutes) except stretching or rest-day items. Respect the daily time. Keep each string under 14 words.`
+
+// feedback: { rating: 'too easy'|'just right'|'too hard', blockers: [], extra }
+export async function aiNextWeek(arc, weekIdx, stats, feedback, model) {
+  const prev = arc.weeks[weekIdx - 1] || {}
+  const cur = arc.weeks[weekIdx] || {}
+  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : 'n/a')
+  const user = [
+    `Arc: "${arc.title}" — ${arc.why || 'no stated why'}. Now planning week ${weekIdx + 1} of ${arc.weeks.length}.`,
+    arc.meta?.outcome ? `Final outcome: ${arc.meta.outcome}.` : '',
+    arc.meta?.level ? `Level: ${arc.meta.level}.` : '',
+    arc.meta?.dailyTime ? `Daily time: ${arc.meta.dailyTime}.` : '',
+    arc.meta?.extra ? `Situation: ${arc.meta.extra}` : '',
+    `Last week's plan: ${prev.theme || '—'}${prev.milestone ? ` (${prev.milestone})` : ''}.`,
+    `Last week result: habits ${pct(stats.habitDone, stats.habitDue)} done, tasks ${stats.taskDone}/${stats.taskTotal} done.`,
+    stats.taskTitles.length ? `Last week's tasks: ${stats.taskTitles.slice(0, 14).join('; ')}.` : '',
+    `This week's plan: ${cur.theme || '—'}${cur.milestone ? ` (${cur.milestone})` : ''}.`,
+    feedback.rating ? `They said last week was: ${feedback.rating}.` : '',
+    feedback.blockers?.length ? `What got in the way: ${feedback.blockers.join(', ')}.` : '',
+    feedback.extra ? `Their note: ${feedback.extra}` : '',
+  ].filter(Boolean).join('\n')
+  const out = await chat(
+    [{ role: 'system', content: WEEK_SYSTEM }, { role: 'user', content: user }],
+    { model, temperature: 0.6, max_tokens: 2500, json: true, reasoning: 'medium' }
+  )
+  let raw = null
+  try { raw = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)) } catch { /* handled below */ }
+  const plan = normalizeWeekPlan(raw)
   if (!plan) throw new Error('The AI reply could not be read as a plan. Try again.')
   return plan
 }

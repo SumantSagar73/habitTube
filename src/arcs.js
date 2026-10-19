@@ -4,8 +4,8 @@
 // arc: { id, title, why, startDate, endDate, status: 'active'|'paused'|'closed',
 //        weeks: [{ theme, milestone }], minDay, goalId, habitIds, resumedAt?, closedAt?, createdAt }
 import { GOAL_COLORS } from './palette'
-import { currentPeriods } from './planUtils'
-import { addDays, dateKey, parseKey, todayKey, uid } from './utils'
+import { currentPeriods, periodKeys } from './planUtils'
+import { addDays, dateKey, isDone, isScheduled, parseKey, todayKey, uid } from './utils'
 
 export const MAX_ACTIVE_ARCS = 2
 export const STALE_DAYS = 5
@@ -44,12 +44,21 @@ export function staleDays(arc, data, today = todayKey()) {
   return d >= STALE_DAYS ? d : 0
 }
 
+const PRIO = { h: 'high', m: 'medium', l: 'low', high: 'high', medium: 'medium', low: 'low' }
+const str = (v) => String(v ?? '').trim()
+function normTasks(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((t) => (Array.isArray(t) ? { off: t[0], title: str(t[1]), p: t[2] } : { off: t?.dayOffset, title: str(t?.title), p: t?.priority }))
+    .filter((t) => t.title)
+    .slice(0, 14)
+    .map((t) => ({ dayOffset: clamp(Number(t.off) || 0, 0, 6), title: t.title, priority: PRIO[t.p] || 'medium' }))
+}
+
 // Validate/normalize the model's compact JSON. Returns null if unusable.
 // Shape: {title, why, weeks:[[theme,milestone]], target:[title,n,unit]|null,
 //         habits:[[emoji,name,[days],"HH:MM"]], tasks:[[dayOffset,title,"h|m|l"]], minDay}
 export function normalizeArcPlan(raw, weeksCount) {
   if (!raw || typeof raw !== 'object' || !String(raw.title || '').trim()) return null
-  const str = (v) => String(v ?? '').trim()
   const weeks = (Array.isArray(raw.weeks) ? raw.weeks : [])
     .map((w) => (Array.isArray(w) ? { theme: str(w[0]), milestone: str(w[1]) } : { theme: str(w?.theme), milestone: str(w?.milestone) }))
     .filter((w) => w.theme || w.milestone)
@@ -67,12 +76,7 @@ export function normalizeArcPlan(raw, weeksCount) {
       time: /^\d{2}:\d{2}$/.test(h.time) ? h.time : '',
     }))
 
-  const prio = { h: 'high', m: 'medium', l: 'low', high: 'high', medium: 'medium', low: 'low' }
-  const tasks = (Array.isArray(raw.tasks) ? raw.tasks : [])
-    .map((t) => (Array.isArray(t) ? { off: t[0], title: str(t[1]), p: t[2] } : { off: t?.dayOffset, title: str(t?.title), p: t?.priority }))
-    .filter((t) => t.title)
-    .slice(0, 14)
-    .map((t) => ({ dayOffset: clamp(Number(t.off) || 0, 0, 6), title: t.title, priority: prio[t.p] || 'medium' }))
+  const tasks = normTasks(raw.tasks)
 
   const tg = Array.isArray(raw.target) ? { title: str(raw.target[0]), n: Number(raw.target[1]) || 0, unit: str(raw.target[2]) } : null
   return {
@@ -85,6 +89,14 @@ export function normalizeArcPlan(raw, weeksCount) {
     minDay: str(raw.minDay),
     weeksCount,
   }
+}
+
+// Next-week plan from a check-in: { note, milestone, tasks }. Null if there are no tasks.
+export function normalizeWeekPlan(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const tasks = normTasks(raw.tasks)
+  if (!tasks.length) return null
+  return { note: str(raw.note), milestone: str(raw.milestone), tasks }
 }
 
 // Turn an accepted plan into store additions. Reuses the current quarter goal as
@@ -145,9 +157,76 @@ export function buildArcPatch(data, plan) {
     status: 'active',
     weeks: plan.weeks,
     minDay: plan.minDay,
+    meta: plan.meta || {},
+    generatedWeek: 0,
+    checkins: [],
     goalId: monthGoal.id,
     habitIds: habits.map((h) => h.id),
     createdAt: Date.now(),
   }
   return { arc, goals: [monthGoal, weekGoal], habits, tasksByDay }
+}
+
+// The week index (0-based) that needs planning, or null. An active arc has one when
+// the calendar has moved past the last week we generated tasks for.
+export function pendingWeek(arc, today = todayKey()) {
+  if (arc.status !== 'active' || today > arc.endDate) return null
+  const { weekIdx } = arcDay(arc, today)
+  return weekIdx > (arc.generatedWeek ?? 0) ? weekIdx : null
+}
+
+// How a given arc week went: habit completion over scheduled days, tasks done.
+export function weekStats(arc, { habits = [], completions = {}, tasks = {} }, weekIdx) {
+  const start = addDays(parseKey(arc.startDate), weekIdx * 7)
+  const mine = habits.filter((h) => (arc.habitIds || []).includes(h.id))
+  let due = 0, done = 0, taskTotal = 0, taskDone = 0
+  const titles = []
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(start, i)
+    const k = dateKey(d)
+    for (const h of mine) {
+      if (h.createdAt <= k && isScheduled(h, d)) {
+        due++
+        if (isDone(h, completions, k)) done++
+      }
+    }
+    for (const t of tasks[k] || []) {
+      if (t.arcId !== arc.id) continue
+      taskTotal++
+      titles.push(t.title)
+      if (t.done) taskDone++
+    }
+  }
+  return { habitDue: due, habitDone: done, taskTotal, taskDone, taskTitles: titles }
+}
+
+// Store additions for a planned week: a week goal under the arc's month goal, plus tasks.
+export function buildWeekPatch(data, arc, weekIdx, weekPlan) {
+  const today = new Date()
+  const base = data.goals.find((g) => g.id === arc.goalId)
+  const week = arc.weeks[weekIdx] || {}
+  const goal = {
+    id: uid(),
+    level: 'week',
+    period: periodKeys(today).week,
+    parentId: arc.goalId,
+    title: weekPlan.milestone || week.milestone || week.theme || `Week ${weekIdx + 1}`,
+    color: base?.color || GOAL_COLORS[0],
+    type: 'checklist',
+    target: 0,
+    current: 0,
+    unit: '',
+    habitId: null,
+    habitTarget: 0,
+    manualPct: null,
+    done: false,
+    createdAt: dateKey(today),
+    arcId: arc.id,
+  }
+  const tasksByDay = {}
+  for (const t of weekPlan.tasks) {
+    const dk = dateKey(addDays(today, t.dayOffset))
+    ;(tasksByDay[dk] ||= []).push({ id: uid(), title: t.title, done: false, goalId: goal.id, priority: t.priority, arcId: arc.id })
+  }
+  return { goal, tasksByDay }
 }

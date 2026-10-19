@@ -8,6 +8,7 @@ import CoachChat from './components/CoachChat'
 import CoachWidget from './components/CoachWidget'
 import { fmtClock } from './components/FocusTimer'
 import ArcWizard from './components/ArcWizard'
+import ArcCheckin from './components/ArcCheckin'
 import ArcsPanel from './components/ArcsPanel'
 import GoalWizard from './components/GoalWizard'
 import HabitDetail from './components/HabitDetail'
@@ -19,7 +20,7 @@ import PlanView from './components/PlanView'
 import PWABanner from './components/PWABanner'
 import SettingsModal from './components/SettingsModal'
 import TodayView from './components/TodayView'
-import { buildArcPatch } from './arcs'
+import { buildArcPatch, buildWeekPatch, pendingWeek } from './arcs'
 import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
@@ -55,6 +56,7 @@ export default function App() {
   const [newMenu, setNewMenu] = useState(false)
   const [wizard, setWizard] = useState(false)
   const [arcWizard, setArcWizard] = useState(false)
+  const [checkinArcId, setCheckinArcId] = useState(null)
   const [settings, setSettings] = useState(false)
   const [focus, setFocus] = useState(() => {
     try {
@@ -593,6 +595,21 @@ export default function App() {
     })
   }
 
+  // Apply a weekly check-in: new week goal + tasks, and remember the feedback on the arc.
+  function applyCheckin(arcId, weekIdx, weekPlan, feedback) {
+    setData((d) => {
+      const arc = (d.arcs || []).find((x) => x.id === arcId)
+      if (!arc) return d
+      const { goal, tasksByDay } = buildWeekPatch(d, arc, weekIdx, weekPlan)
+      const tasks = { ...d.tasks }
+      for (const [k, arr] of Object.entries(tasksByDay)) tasks[k] = [...(tasks[k] || []), ...arr]
+      const weeks = arc.weeks.map((w, i) => (i === weekIdx && weekPlan.milestone ? { ...w, milestone: weekPlan.milestone } : w))
+      const checkin = { week: weekIdx, at: todayKey(), rating: feedback.rating, blockers: feedback.blockers, note: weekPlan.note }
+      const arcs = d.arcs.map((x) => (x.id === arcId ? { ...x, weeks, generatedWeek: weekIdx, resumedAt: todayKey(), checkins: [...(x.checkins || []), checkin] } : x))
+      return { ...d, arcs, goals: [...d.goals, goal], tasks }
+    })
+  }
+
   // Resume / pause / close an arc. Resuming counts as activity (resets the quiet timer).
   function resolveArc(id, action) {
     const status = { resume: 'active', pause: 'paused', close: 'closed' }[action]
@@ -907,7 +924,7 @@ export default function App() {
 
         <main className="animate-fade-up" key={tab}>
           {(tab === 'today' || tab === 'plan') && !timerFs && (
-            <ArcsPanel data={data} compact={tab === 'today'} onNew={() => setArcWizard(true)} onResolveArc={resolveArc} />
+            <ArcsPanel data={data} compact={tab === 'today'} onNew={() => setArcWizard(true)} onResolveArc={resolveArc} onCheckin={setCheckinArcId} />
           )}
           {tab === 'today' && (
             <TodayView
@@ -1111,6 +1128,23 @@ export default function App() {
           onClose={() => setWizard(false)}
         />
       )}
+      {checkinArcId && (() => {
+        const arc = (data.arcs || []).find((x) => x.id === checkinArcId)
+        const weekIdx = arc ? pendingWeek(arc) : null
+        if (!arc || weekIdx == null) return null
+        return (
+          <ArcCheckin
+            arc={arc}
+            weekIdx={weekIdx}
+            data={data}
+            onApply={(plan, feedback) => {
+              applyCheckin(arc.id, weekIdx, plan, feedback)
+              setCheckinArcId(null)
+            }}
+            onClose={() => setCheckinArcId(null)}
+          />
+        )
+      })()}
       {arcWizard && (
         <ArcWizard
           data={data}

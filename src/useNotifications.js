@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { playNotification } from './sounds'
 import { habitsForDate, isDone, todayKey, dateKey } from './utils'
 import { goalPercent, currentPeriods } from './planUtils'
-import { staleDays } from './arcs'
+import { pendingWeek, staleDays } from './arcs'
 
 // Push a notification into data.notifications (dedup by id).
 // Returns true if it was actually new (so caller can play sound).
@@ -81,6 +81,17 @@ export default function useNotifications(data, setData) {
     if (data.arcNotify !== false) {
       for (const arc of data.arcs || []) {
         if (arc.status !== 'active') continue
+        const nextWeek = pendingWeek(arc, key)
+        if (nextWeek != null) {
+          push(setData, {
+            id: `arc-week-${arc.id}-${nextWeek}`,
+            type: 'arc',
+            title: `🗓 Week ${nextWeek + 1} of “${arc.title}” is ready to plan`,
+            body: 'A one-minute check-in sets up your next week.',
+            createdAt: Date.now(),
+            read: false,
+          }, sound)
+        }
         const quiet = staleDays(arc, data, key)
         if (quiet) {
           push(setData, {
