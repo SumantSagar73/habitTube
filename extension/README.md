@@ -26,8 +26,9 @@ on the permanent allowlist; use this for the occasional lookup.
 
 ## Using it with a deployed site
 
-The extension talks to HabitTube on `localhost`, `*.vercel.app`, `*.github.io`,
-and `*.netlify.app` by default. If your app lives on a custom domain, add it to
+The extension talks to HabitTube only on `localhost`, `127.0.0.1` and
+`habit-tube.vercel.app` (wildcard hosts were removed so other sites can't control
+your focus session). If your app lives on a different domain, add it to
 `content_scripts.matches` in `manifest.json` (e.g. `"https://app.mysite.com/*"`)
 and reload the extension.
 

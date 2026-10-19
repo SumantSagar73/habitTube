@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { goalPercent, LEVEL_LABEL, LEVELS, periodLabel } from '../planUtils'
-import { addDays, dateKey, habitRate, parseKey } from '../utils'
+import { addDays, dateKey, habitRate } from '../utils'
 import Achievements from './Achievements'
 import Select from './Select'
 import ActivityChart from './ActivityChart'
@@ -441,7 +441,7 @@ export default function InsightsView({
   }, [goals, levelFilter, periodFilter, statusFilter, ctx])
 
   // Calculate summary metrics for the filtered goals
-  const { avgCompletion, completedGoals, activeGoals } = useMemo(() => {
+  const { avgCompletion, completedGoals } = useMemo(() => {
     if (filteredGoals.length === 0) return { avgCompletion: 0, completedGoals: 0, activeGoals: 0 }
     const totalPct = filteredGoals.reduce((acc, g) => acc + goalPercent(g, ctx), 0)
     const avg = Math.round(totalPct / filteredGoals.length)
@@ -456,7 +456,6 @@ export default function InsightsView({
     name: `${h.emoji} ${h.name.length > 14 ? h.name.slice(0, 13) + '…' : h.name}`,
     rate: habitRate(h, completions, 30),
   }))
-  const goalsByLevel = LEVELS.map((lvl) => ({ lvl, items: goals.filter((g) => g.level === lvl) })).filter((x) => x.items.length)
 
   const ink = dark ? '#f5f5f5' : '#171717'
   const axisColor = dark ? '#737373' : '#a3a3a3'

@@ -162,7 +162,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     try {
       if (msg.type === 'START') {
         const appHost = sender.url ? new URL(sender.url).hostname.replace(/^www\./, '') : null
-        await startFocus({ endsAt: msg.endsAt, allowlist: msg.allowlist, label: msg.label, appHost })
+        await startFocus({ endsAt: msg.endsAt, allowlist: msg.allowlist, blocklist: msg.blocklist, label: msg.label, appHost })
         sendResponse({ ok: true })
       } else if (msg.type === 'STOP') {
         await stopFocus('app')

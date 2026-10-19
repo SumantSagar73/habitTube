@@ -1,29 +1,43 @@
 import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from './planUtils'
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
+import { supabase } from './utils/supabase'
 
 export const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
 export const AI_MODELS = [
   { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B — smartest' },
   { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B — fastest' },
-  { id: 'gemma2-9b-it', label: 'Gemma 2 9B' },
 ]
 
-// Low-level call. The Groq key is attached by the Vite dev-server proxy, so the
-// browser never sees it. Errors are surfaced with a friendly message.
+// The production proxy (api/groq.js) requires a valid Supabase session.
+async function aiHeaders() {
+  const headers = { 'Content-Type': 'application/json' }
+  try {
+    const { data } = await supabase.auth.getSession()
+    if (data.session?.access_token) headers.Authorization = `Bearer ${data.session.access_token}`
+  } catch { /* dev proxy doesn't need it */ }
+  return headers
+}
+
+// Low-level call. The Groq key is attached server-side (Vite dev proxy locally,
+// api/groq.js on Vercel), so the browser never sees it.
+// Saved settings may name a retired model; fall back so the proxy allowlist doesn't reject it.
+const safeModel = (m) => (AI_MODELS.some((x) => x.id === m) ? m : DEFAULT_MODEL)
+
 async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450 } = {}) {
+  model = safeModel(model)
   let res
   try {
     res = await fetch('/groq/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await aiHeaders(),
       body: JSON.stringify({ model, messages, temperature, max_tokens }),
     })
   } catch {
-    throw new Error('Could not reach the AI. Make sure the app is running via "npm run dev".')
+    throw new Error('Could not reach the AI. Check your connection and try again.')
   }
   const text = await res.text()
   if (!res.ok) {
-    if (res.status === 401) throw new Error('Groq rejected the API key (401). Check the key in .env.local.')
+    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check GROQ_API_KEY.')
     if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
     throw new Error(`AI error ${res.status}. ${text.slice(0, 160)}`)
   }
@@ -321,11 +335,12 @@ export function aiCoachReply(messages, contextText, model = DEFAULT_MODEL) {
 
 // Streaming chat. Yields text deltas as they arrive.
 export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL) {
+  model = safeModel(model)
   let res
   try {
     res = await fetch('/groq/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await aiHeaders(),
       body: JSON.stringify({
         model,
         // Strip UI-only fields (proposal/applied/dismissed) — Groq rejects any
@@ -340,11 +355,11 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
       }),
     })
   } catch {
-    throw new Error('Could not reach the AI. Make sure the app is running via "npm run dev".')
+    throw new Error('Could not reach the AI. Check your connection and try again.')
   }
   if (!res.ok) {
     const t = await res.text()
-    if (res.status === 401) throw new Error('Groq rejected the API key (401). Check .env.local.')
+    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check GROQ_API_KEY.')
     if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
     throw new Error(`AI error ${res.status}. ${t.slice(0, 160)}`)
   }
@@ -406,7 +421,7 @@ export function parseProposal(text) {
       else if (Array.isArray(obj)) found = filterItems(obj)                        // [{...},...]
       else if (obj && obj.kind) found = filterItems([obj])                         // {"kind":...}
       if (found && found.length) { raw = m[0]; items = found; break }
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   // Fallback: scan bare JSON outside fences
@@ -424,7 +439,7 @@ export function parseProposal(text) {
           const obj = JSON.parse(text.slice(start, end + 1))
           const found = obj && Array.isArray(obj.plan) ? filterItems(obj.plan) : null
           if (found && found.length) { raw = text.slice(start, end + 1); items = found }
-        } catch {}
+        } catch { /* ignore */ }
       }
     }
   }

@@ -12,10 +12,7 @@
       "matches": [
         "http://localhost/*",
         "http://127.0.0.1/*",
-        "https://habit-tube.vercel.app/*",
-        "https://*.vercel.app/*",
-        "https://*.github.io/*",
-        "https://*.netlify.app/*"
+        "https://habit-tube.vercel.app/*"
       ],
       "js": ["content.js"],
       "run_at": "document_start"

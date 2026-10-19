@@ -160,7 +160,6 @@ export default function PlanView({
   aiEnabled,
   aiModel,
   planMode,
-  setPlanMode,
 }) {
   const now = currentPeriods()
   // Open directly at the current week — day-to-day planning happens here.
@@ -611,7 +610,7 @@ function readDrag(e) {
   try { return JSON.parse(e.dataTransfer.getData('application/json')) } catch { return null }
 }
 
-function WeekBoard({ week, tasks, linkGoals, goals, habits = [], onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onMoveTask, onReorderTask }) {
+function WeekBoard({ week, tasks, linkGoals, habits = [], onAddTask, onToggleTask, onUpdateTask, onDeleteTask, onMoveTask, onReorderTask }) {
   const days = daysOfWeek(week)
   const today = todayKey()
   const [dragOverDay, setDragOverDay] = useState(null)

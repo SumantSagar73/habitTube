@@ -20,14 +20,25 @@ create table if not exists public.state_snapshots (
 create index if not exists state_snapshots_user_time
   on public.state_snapshots ("userId", "createdAt" desc);
 
--- Match the permissive access model the app already uses for `states`
--- (no per-user auth RLS today). Tighten later when auth-scoped RLS is added.
+-- Each signed-in user can only touch their own snapshots. The app keys sync by
+-- the Supabase auth uid, so "userId" must equal auth.uid(). Safe to re-run: this
+-- also removes the old wide-open policy.
 alter table public.state_snapshots enable row level security;
 
 drop policy if exists "anon full access to snapshots" on public.state_snapshots;
-create policy "anon full access to snapshots"
+drop policy if exists "users manage own snapshots" on public.state_snapshots;
+create policy "users manage own snapshots"
   on public.state_snapshots for all
-  using (true) with check (true);
+  to authenticated
+  using (auth.uid()::text = "userId")
+  with check (auth.uid()::text = "userId");
+
+-- NOTE: the `states` table needs the same treatment (not defined in this repo).
+-- Check Dashboard → Authentication → Policies, or run:
+--   alter table public.states enable row level security;
+--   drop policy if exists "<existing permissive policy name>" on public.states;
+--   create policy "users manage own state" on public.states for all to authenticated
+--     using (auth.uid()::text = "userId") with check (auth.uid()::text = "userId");
 
 -- ── Optional: true nightly backup independent of the app being open ──────────
 -- Requires the pg_cron extension (Database → Extensions → enable "pg_cron").

@@ -21,7 +21,7 @@ export function playNotification() {
       osc.start(ctx.currentTime + delay)
       osc.stop(ctx.currentTime + delay + 0.28)
     }
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 // Three ascending tones for focus timer alarm
@@ -41,5 +41,5 @@ export function playAlarm() {
       osc.start(ctx.currentTime + delay)
       osc.stop(ctx.currentTime + delay + 0.22)
     }
-  } catch {}
+  } catch { /* ignore */ }
 }

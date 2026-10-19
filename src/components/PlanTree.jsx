@@ -5,7 +5,7 @@ const RANK = { year: 0, quarter: 1, month: 2, week: 3 }
 const sortFn = (a, b) =>
   RANK[a.level] - RANK[b.level] || a.period.localeCompare(b.period) || a.createdAt.localeCompare(b.createdAt)
 
-function build(goals, searchQuery, filterLevel, filterStatus) {
+function build(goals, searchQuery, filterLevel) {
   // Filter goals first
   let filtered = goals
   if (searchQuery.trim()) {

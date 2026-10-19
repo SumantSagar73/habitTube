@@ -54,8 +54,8 @@ export default function useReminders(data) {
       } else {
         try {
           const n = new Notification(title, { body, tag })
-          n.onclick = () => { try { window.focus() } catch {} }
-        } catch {}
+          n.onclick = () => { try { window.focus() } catch { /* ignore */ } }
+        } catch { /* ignore */ }
       }
     }
 

@@ -178,7 +178,7 @@ function habitCompletionsInPeriod(habit, completions, level, key) {
 export function goalPercent(goal, ctx, memo = new Map()) {
   if (memo.has(goal.id)) return memo.get(goal.id)
   memo.set(goal.id, 0) // guard against accidental cycles
-  let pct = 0
+  let pct
   if (goal.manualPct != null) {
     pct = goal.manualPct
   } else if (goal.type === 'numeric') {

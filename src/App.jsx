@@ -30,7 +30,7 @@ import { pushPublicSnapshot } from './sync'
 import { maybeDailySnapshot } from './snapshots'
 import { startBlocking, stopBlocking, blockerInstalled } from './focusBlocker'
 import { supabase } from './utils/supabase'
-import { addDays, dateKey, habitsForDate, todayKey, uid } from './utils'
+import { addDays, dateKey, todayKey, uid } from './utils'
 
 const LEVEL_ORDER = ['year', 'quarter', 'month', 'week']
 
@@ -59,7 +59,7 @@ export default function App() {
         const remaining = Math.max(0, Math.round((saved.endsAt - Date.now()) / 1000))
         if (remaining > 0) return { ...saved, running: false, remaining } // restore paused
       }
-    } catch {}
+    } catch { /* ignore */ }
     return { running: false, endsAt: null, remaining: 25 * 60, durationMin: 25, goalId: null, label: '', isBreak: false, autoBreak: false }
   })
   const [timerFs, setTimerFs] = useState(false)
@@ -184,7 +184,7 @@ export default function App() {
   }, [focus])
 
   const focusRef = useRef(focus)
-  focusRef.current = focus
+  useEffect(() => { focusRef.current = focus })
 
   function finishFocus() {
     const f = focusRef.current
@@ -218,7 +218,7 @@ export default function App() {
       if (navigator.serviceWorker?.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'NOTIFY', title, body, tag: 'focus-done' })
       } else {
-        try { new Notification(title, { body }) } catch {}
+        try { new Notification(title, { body }) } catch { /* ignore */ }
       }
     }
   }
@@ -1128,7 +1128,7 @@ export default function App() {
   )
 }
 
-function WeeklyReviewBanner({ weekKey, onOpen, onDismiss }) {
+function WeeklyReviewBanner({ onOpen, onDismiss }) {
   return (
     <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 px-4 md:bottom-6">
       <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-3.5 shadow-xl dark:border-neutral-700 dark:bg-[#161616]">

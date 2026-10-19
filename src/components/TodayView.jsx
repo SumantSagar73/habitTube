@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { quoteOfTheDay } from '../quotes'
-import { addDays, dateKey, formatNice, habitsForDate, isDone, nextPriority, sortByPriority, todayKey } from '../utils'
+import { addDays, dateKey, formatNice, habitsForDate, isDone, nextPriority, todayKey } from '../utils'
 import { quickChat } from '../ai'
 import AICoach from './AICoach'
 import Confetti from './Confetti'
@@ -23,14 +23,6 @@ function accountabilityMessage(pendingHabits, doneHabits, totalHabits, pendingTa
   if (doneCount === 0 && hour >= 12) return `You haven't started yet — pick the easiest one and just begin. ${pending} to go.`
   if (doneCount > 0) return `Nice momentum — ${doneCount} down, ${pending} to go. Finish strong.`
   return `${pending} item${pending > 1 ? 's' : ''} on today's plan. Future you is counting on present you.`
-}
-
-function formatTime12h(timeStr) {
-  if (!timeStr) return ''
-  const [h, m] = timeStr.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  const h12 = ((h + 11) % 12) + 1
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -755,7 +747,7 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
   )
 }
 
-function RecurringTaskForm({ goals, onAdd }) {
+function RecurringTaskForm({ onAdd }) {
   const [title, setTitle] = useState('')
   const [repeat, setRepeat] = useState('daily')
 
