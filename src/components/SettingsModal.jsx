@@ -232,14 +232,14 @@ export default function SettingsModal({
         </div>
 
         {/* AI toggle */}
-        <div className="flex items-center justify-between rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">AI coach</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">Daily motivation, insights & reviews</p>
           </div>
           <button
             onClick={onToggleAi}
-            className={`relative h-7 w-12 rounded-full transition ${aiEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${aiEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
           >
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${aiEnabled ? 'left-6' : 'left-1'}`} />
           </button>
@@ -278,7 +278,7 @@ export default function SettingsModal({
         )}
 
         {/* reminders toggle */}
-        <div className="mt-4 flex items-center justify-between rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">Daily reminders</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -287,14 +287,14 @@ export default function SettingsModal({
           </div>
           <button
             onClick={onToggleReminders}
-            className={`relative h-7 w-12 rounded-full transition ${remindersEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${remindersEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
           >
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${remindersEnabled ? 'left-6' : 'left-1'}`} />
           </button>
         </div>
 
         {/* sound toggle */}
-        <div className="mt-4 flex items-center justify-between rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">Sound effects</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -303,12 +303,12 @@ export default function SettingsModal({
           </div>
           <button
             onClick={onToggleSound}
-            className={`relative h-7 w-12 rounded-full transition ${soundEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${soundEnabled ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
           >
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${soundEnabled ? 'left-6' : 'left-1'}`} />
           </button>
         </div>
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
           <div>
             <p className="font-bold text-neutral-900 dark:text-white">Arc nudges</p>
             <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -317,7 +317,7 @@ export default function SettingsModal({
           </div>
           <button
             onClick={onToggleArcNotify}
-            className={`relative h-7 w-12 rounded-full transition ${arcNotify ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${arcNotify ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
           >
             <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${arcNotify ? 'left-6' : 'left-1'}`} />
           </button>
@@ -369,14 +369,14 @@ export default function SettingsModal({
           Public profile
         </label>
         <div className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="font-bold text-neutral-900 dark:text-white">Share my progress</p>
               <p className="text-sm font-medium text-neutral-400 dark:text-neutral-500">Anyone with the link can see your habits & goals</p>
             </div>
             <button
               onClick={onToggleShare}
-              className={`relative h-7 w-12 rounded-full transition ${shareProfile ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition ${shareProfile ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-700'}`}
             >
               <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition dark:bg-neutral-900 ${shareProfile ? 'left-6' : 'left-1'}`} />
             </button>

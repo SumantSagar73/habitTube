@@ -61,6 +61,18 @@ export default function ArcsPanel({ data, compact = false, onNew, onResolveArc }
                   <span className="font-bold">This week:</span> {wk.milestone}
                 </p>
               )}
+              {!compact && a.weeks?.length > 0 && (
+                <details className="mt-3 text-sm">
+                  <summary className="cursor-pointer text-xs font-semibold text-neutral-500 dark:text-neutral-400">Week-by-week path</summary>
+                  <ol className="mt-2 space-y-1.5">
+                    {a.weeks.map((w, i) => (
+                      <li key={i} className={i === weekIdx ? 'font-semibold text-neutral-900 dark:text-white' : 'text-neutral-500 dark:text-neutral-400'}>
+                        W{i + 1} · {w.theme}{w.milestone ? ` — ${w.milestone}` : ''}
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )}
               {a.minDay && (
                 <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
                   <span className="font-bold">Bad day? </span>{a.minDay}

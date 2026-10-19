@@ -71,7 +71,7 @@ export function normalizeArcPlan(raw, weeksCount) {
   const tasks = (Array.isArray(raw.tasks) ? raw.tasks : [])
     .map((t) => (Array.isArray(t) ? { off: t[0], title: str(t[1]), p: t[2] } : { off: t?.dayOffset, title: str(t?.title), p: t?.priority }))
     .filter((t) => t.title)
-    .slice(0, 10)
+    .slice(0, 14)
     .map((t) => ({ dayOffset: clamp(Number(t.off) || 0, 0, 6), title: t.title, priority: prio[t.p] || 'medium' }))
 
   const tg = Array.isArray(raw.target) ? { title: str(raw.target[0]), n: Number(raw.target[1]) || 0, unit: str(raw.target[2]) } : null

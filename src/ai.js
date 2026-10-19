@@ -30,21 +30,21 @@ async function aiHeaders() {
 // Saved settings may name a retired model; fall back so the proxy allowlist doesn't reject it.
 export const safeModel = (m) => (AI_MODELS.some((x) => x.id === m) ? m : DEFAULT_MODEL)
 
-async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450, json = false } = {}) {
+async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450, json = false, reasoning } = {}) {
   model = safeModel(model)
   let res
   try {
     res = await fetch('/ai/chat/completions', {
       method: 'POST',
       headers: await aiHeaders(),
-      body: JSON.stringify({ model, messages, temperature, max_tokens, ...(json ? { response_format: { type: 'json_object' } } : {}) }),
+      body: JSON.stringify({ model, messages, temperature, max_tokens, ...(json ? { response_format: { type: 'json_object' } } : {}), ...(reasoning && model.startsWith('openai/gpt-oss') ? { reasoning_effort: reasoning } : {}) }),
     })
   } catch {
     throw new Error('Could not reach the AI. Check your connection and try again.')
   }
   const text = await res.text()
   // Some models reject JSON mode — retry once as plain text; callers parse leniently.
-  if (json && res.status === 400) return chat(messages, { model, temperature, max_tokens, json: false })
+  if (json && res.status === 400) return chat(messages, { model, temperature, max_tokens, json: false, reasoning })
   if (!res.ok) {
     if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check the provider API key.')
     if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
@@ -189,10 +189,15 @@ export async function aiTest(model) {
 }
 
 // ---- arcs ----
-const ARC_SYSTEM = `You design a focused, realistic "arc": a time-boxed push the user named themselves. Reply with ONLY one JSON object, no prose, no code fences.
-Schema (compact arrays, keep every string under 9 words):
-{"title":"short arc name","why":"one sentence, their words","weeks":[["theme","milestone"], ...exactly N entries],"target":["measurable month goal",number,"unit"] or null,"habits":[["emoji","habit name",[days 0=Sun..6],"HH:MM or empty"], ...2 to 4],"tasks":[[dayOffset 0-6,"task","h|m|l"], ...max 8, next 7 days only],"minDay":"the 15-minute version of a day for bad days"}
-Rules: size everything to the user's daily time and past obstacles; ramp difficulty week by week; prefer habits over many tasks; week 1 should be easy to start.`
+const ARC_SYSTEM = `You are an expert coach designing a personalized, time-boxed "arc" the user named themselves. Reply with ONLY one JSON object, no prose, no code fences.
+Schema (compact arrays):
+{"title":"short arc name","why":"one sentence in the user's words","weeks":[["week theme","measurable milestone with a number"], ...exactly N entries],"target":["measurable goal for the whole arc",number,"unit"] or null,"habits":[["emoji","small recurring anchor",[days 0=Sun..6],"HH:MM or empty"], ...2 to 4],"tasks":[[dayOffset 0-6,"specific session, with duration","h|m|l"], ...8 to 14, the next 7 days],"minDay":"the 15-minute version of a day for bad days"}
+Quality bar:
+- Be specific and concrete: name real exercises, topics, chapters, sets/reps, minutes. Never write vague advice like "stay consistent" or "walk 5 minutes" unless the user is truly a beginner with almost no time.
+- Start at the user's stated level, then ramp every week (about 10-20% more volume or difficulty). Later weeks must differ from week 1.
+- Week milestones must be measurable. If the user's outcome contains a number, "target" must use it.
+- tasks = a real schedule for the next 7 days that fits the daily time, with rest days where sensible. Habits are small daily anchors, different from the tasks.
+- Keep each string under 14 words.`
 
 function arcContext({ habits = [], completions = {}, goals = [] }) {
   const h = habits.slice(0, 8).map((x) => `${x.name} ${habitRate(x, completions, 30)}%`).join(', ')
@@ -207,13 +212,14 @@ export async function aiGenerateArc(answers, data, model) {
     answers.outcome ? `Success looks like: ${answers.outcome}.` : '',
     `Length: ${answers.weeks} weeks (N=${answers.weeks}). Starts today (${todayKey()}).`,
     `Daily time available: ${answers.dailyTime}.`,
+    answers.level ? `Starting level: ${answers.level}.` : '',
     answers.obstacles?.length ? `What failed before: ${answers.obstacles.join(', ')}.` : '',
-    answers.extra ? `Notes: ${answers.extra}` : '',
+    answers.extra ? `More about their situation: ${answers.extra}` : '',
     arcContext(data),
   ].filter(Boolean).join('\n')
   const out = await chat(
     [{ role: 'system', content: ARC_SYSTEM }, { role: 'user', content: user }],
-    { model, temperature: 0.6, max_tokens: 2500, json: true }
+    { model, temperature: 0.6, max_tokens: 3500, json: true, reasoning: 'medium' }
   )
   const start = out.indexOf('{')
   const end = out.lastIndexOf('}')

@@ -5,6 +5,7 @@ import { activeArcs, MAX_ACTIVE_ARCS, staleDays } from '../arcs'
 const THEMES = ['Get fit', 'Exam / study', 'Learn a skill', 'Reset my habits', 'Build a project', 'Career push']
 const WEEKS = [4, 6, 8, 12]
 const TIMES = ['30 min', '1 hour', '2 hours', '3+ hours']
+const LEVELS = ['Complete beginner', 'Some experience', 'Experienced']
 const OBSTACLES = ['Motivation fades', 'Too ambitious', 'No time', 'Distractions', 'Inconsistent']
 
 const labelCls = 'mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500'
@@ -22,7 +23,7 @@ const ghostBtn =
   'rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500'
 
 export default function ArcWizard({ data, aiEnabled, onApply, onResolveArc, onClose }) {
-  const [answers, setAnswers] = useState({ theme: '', outcome: '', weeks: 4, dailyTime: '1 hour', obstacles: [], extra: '' })
+  const [answers, setAnswers] = useState({ theme: '', outcome: '', weeks: 4, dailyTime: '1 hour', level: '', obstacles: [], extra: '' })
   const [plan, setPlan] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -174,12 +175,29 @@ export default function ArcWizard({ data, aiEnabled, onApply, onResolveArc, onCl
           ))}
         </div>
 
+        <label className={`${labelCls} mt-5`}>Where are you starting from?</label>
+        <div className="flex flex-wrap gap-2">
+          {LEVELS.map((l) => (
+            <button key={l} type="button" className={chip(answers.level === l)} onClick={() => set({ level: l })}>{l}</button>
+          ))}
+        </div>
+
         <label className={`${labelCls} mt-5`}>What got in the way before? (optional)</label>
         <div className="flex flex-wrap gap-2">
           {OBSTACLES.map((o) => (
             <button key={o} type="button" className={chip(answers.obstacles.includes(o))} onClick={() => toggleObstacle(o)}>{o}</button>
           ))}
         </div>
+
+        <label className={`${labelCls} mt-5`}>Anything the plan should know? (optional)</label>
+        <textarea
+          className={`${inputCls} resize-none`}
+          rows={3}
+          maxLength={400}
+          value={answers.extra}
+          onChange={(e) => set({ extra: e.target.value })}
+          placeholder="Current routine, equipment, injuries, exam date, what you want to avoid…"
+        />
 
         {error && <p className="mt-4 text-sm font-medium text-neutral-500 dark:text-neutral-400">{error}</p>}
         <button className={`${primaryBtn} mt-6`} onClick={generate} disabled={busy || !answers.theme.trim()}>
