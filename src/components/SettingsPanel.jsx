@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, Database, Monitor, Moon, Share2, SlidersHorizontal, Sparkles, Sun, X } from 'lucide-react'
+import { Bell, Database, Monitor, Moon, Share2, Shield, SlidersHorizontal, Sparkles, Sun, X } from 'lucide-react'
 import { AI_MODELS, aiTest, providerOfModel, safeModel } from '../ai'
 import { todayKey } from '../utils'
 import { pullState } from '../sync'
 import { listSnapshots, saveSnapshot } from '../snapshots'
 import ByokSettings from './ByokSettings'
+import FocusBlockerSettings from './FocusBlockerSettings'
 import Select from './Select'
 
 const SECTIONS = [
   { id: 'general', label: 'General', Icon: SlidersHorizontal, desc: 'Look and feel.' },
   { id: 'notifications', label: 'Notifications', Icon: Bell, desc: 'When HabitTube should nudge you.' },
   { id: 'ai', label: 'AI coach', Icon: Sparkles, desc: 'The coach, its model, and your own key.' },
+  { id: 'focus', label: 'Focus blocker', Icon: Shield, desc: 'Which sites load while you focus.' },
   { id: 'data', label: 'Data & backup', Icon: Database, desc: 'Sync, export, import and restore.' },
   { id: 'sharing', label: 'Sharing', Icon: Share2, desc: 'Control what others can see.' },
 ]
@@ -65,8 +67,10 @@ export default function SettingsPanel({
   onSetTheme,
   onRestore,
   onClose,
+  initialSection = 'general',
+  blocker,
 }) {
-  const [section, setSection] = useState('general')
+  const [section, setSection] = useState(initialSection)
   const [testState, setTestState] = useState('') // '', 'testing', 'ok', 'fail'
   const [testMsg, setTestMsg] = useState('')
   const [restoreMsg, setRestoreMsg] = useState('')
@@ -403,6 +407,8 @@ export default function SettingsPanel({
                 )}
               </>
             )}
+
+            {section === 'focus' && blocker && <FocusBlockerSettings {...blocker} />}
 
             {section === 'data' && (
               <>

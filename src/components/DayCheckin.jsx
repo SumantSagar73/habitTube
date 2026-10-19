@@ -22,12 +22,10 @@ const chip = (active) =>
 export default function DayCheckin({ data, onSave }) {
   const key = todayKey()
   const done = data.dayCheckins?.[key]
-  const [open, setOpen] = useState(false)
   const [match, setMatch] = useState('')
   const [blockers, setBlockers] = useState([])
   const [win, setWin] = useState('')
 
-  const late = new Date().getHours() >= 16
   const minDay = activeArcs(data.arcs).find((a) => a.minDay)?.minDay
 
   if (done) {
@@ -37,17 +35,6 @@ export default function DayCheckin({ data, onSave }) {
         <span className="font-bold text-neutral-900 dark:text-white"><Check className="mr-1 inline h-4 w-4 align-[-2px]" />Checked in</span> {label}
         {done.win ? ` · ${done.win}` : ''}
       </div>
-    )
-  }
-
-  if (!late && !open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mb-6 w-full rounded-2xl border border-dashed border-neutral-300 px-4 py-3 text-left text-sm font-semibold text-neutral-400 transition hover:border-neutral-500 dark:border-neutral-700 dark:text-neutral-500"
-      >
-        Evening check-in — how is today going?
-      </button>
     )
   }
 

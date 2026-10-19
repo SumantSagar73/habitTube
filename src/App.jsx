@@ -885,13 +885,8 @@ export default function App() {
               onResumeFocus={resumeFocus}
               onStopFocus={stopFocus}
               onFsChange={setTimerFs}
-              focusAllowlist={data.focusAllowlist || []}
-              focusBlocklist={data.focusBlocklist || []}
-              onAddAllowDomain={addAllowDomain}
-              onRemoveAllowDomain={removeAllowDomain}
-              onAddBlockDomain={addBlockDomain}
-              onRemoveBlockDomain={removeBlockDomain}
               blockerInstalled={extInstalled}
+              onManageBlocker={() => setSettings('focus')}
             />
           )}
           {tab === 'plan' && (
@@ -981,10 +976,6 @@ export default function App() {
           )}
         </Suspense>
         </main>
-
-        <footer className="mt-16 border-t border-neutral-200 pt-6 text-center text-xs font-medium text-neutral-400 dark:border-neutral-800 dark:text-neutral-600">
-          Your data lives only in this browser — stay consistent.
-        </footer>
       </div>
 
       {/* Mobile bottom nav */}
@@ -1087,6 +1078,16 @@ export default function App() {
       )}
       {settings && (
         <SettingsPanel
+          initialSection={typeof settings === 'string' ? settings : 'general'}
+          blocker={{
+            allowlist: data.focusAllowlist || [],
+            blocklist: data.focusBlocklist || [],
+            installed: extInstalled,
+            onAddAllow: addAllowDomain,
+            onRemoveAllow: removeAllowDomain,
+            onAddBlock: addBlockDomain,
+            onRemoveBlock: removeBlockDomain,
+          }}
           arcNotify={data.arcNotify !== false}
           onToggleArcNotify={() => setData((d) => ({ ...d, arcNotify: d.arcNotify === false }))}
           aiEnabled={data.aiEnabled}

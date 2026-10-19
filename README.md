@@ -10,7 +10,7 @@ Built for one user first (the author), so it is opinionated: monochrome, frosted
 
 | Area | What you get |
 | --- | --- |
-| **Today** | Greeting and status line, a week strip, three cards (deep work, your active arc, focus rhythm with your best hour), the coach with one-tap openers, the habit checklist, tasks with a day timeline, a focus timer, and a wrap-up card (mood, journal, evening check-in) |
+| **Today** | Greeting and one status line, week dots, **Up next** (the one thing to do now, with Mark done / Focus 25 min), habit checklist, tasks, your arc, a focus timer, the coach with one-tap openers, and a wrap-up card (mood, journal, check-in) that opens in the evening |
 | **Arcs** | Name your own 1–3 month push ("Winter arc", "Exam sprint"). A short intake generates a week-by-week path, habits and your first week of tasks. Max 2 active; a quiet arc must be resumed, paused or closed before starting another |
 | **Weekly check-in** | When a new arc week starts, say how last week felt and what got in the way. The coach plans the next week from your real results |
 | **Arc review** | When an arc ends: numbers, an honest AI read, close it and roll into the next one |

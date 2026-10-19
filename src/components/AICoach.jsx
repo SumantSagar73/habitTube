@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { aiDailyMotivation } from '../ai'
 import { todayKey } from '../utils'
 
@@ -10,11 +10,13 @@ const ACTIONS = [
   { label: 'How am I doing?', prompt: 'How am I doing this week? Be honest and tell me the one thing to fix.' },
 ]
 
+// Only one mounted instance should fire the daily generation (Today renders it for two breakpoints).
+let autoRanFor = null
+
 // The coach, front and centre on Today: today's read on your day + one-tap ways in.
 export default function AICoach({ enabled, model, motivation, habits, completions, tasks, goals, onSave, onOpenCoach }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const ranFor = useRef(null)
   const today = todayKey()
   const fresh = motivation?.date === today
 
@@ -33,11 +35,14 @@ export default function AICoach({ enabled, model, motivation, habits, completion
 
   // auto-generate once per day
   useEffect(() => {
-    if (!enabled) return
-    if (fresh) return
-    if (ranFor.current === today) return
-    ranFor.current = today
-    generate()
+    if (!enabled || fresh) return
+    // Deferred so the guard is only set by the instance that actually fires (StrictMode remounts).
+    const t = setTimeout(() => {
+      if (autoRanFor === today) return
+      autoRanFor = today
+      generate()
+    }, 0)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, today, fresh])
 
@@ -65,7 +70,7 @@ export default function AICoach({ enabled, model, motivation, habits, completion
           ) : loading && !motivation ? (
             <p className="mt-2 text-sm font-medium text-neutral-400 dark:text-neutral-500">Reading your day…</p>
           ) : motivation ? (
-            <p className="mt-2 font-serif text-xl italic leading-snug text-neutral-800 sm:text-2xl dark:text-neutral-100">{motivation.text}</p>
+            <p className="mt-2 line-clamp-4 font-serif text-lg italic leading-snug text-neutral-800 dark:text-neutral-100">{motivation.text}</p>
           ) : (
             <p className="mt-2 text-sm font-medium text-neutral-400 dark:text-neutral-500">Your daily read will appear here.</p>
           )}

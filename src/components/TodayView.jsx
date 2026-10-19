@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { ChevronDown, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { MoodIcon } from '../icons'
 import { HabitIcon } from '../icons'
-import { quoteOfTheDay } from '../quotes'
 import { addDays, dateKey, habitsForDate, isDone, nextPriority, todayKey } from '../utils'
 import { quickChat } from '../ai'
 import AICoach from './AICoach'
@@ -13,7 +12,8 @@ import GoalOptions from './GoalOptions'
 import HabitCard from './HabitCard'
 import { PriorityDot, PrioritySelect } from './Priority'
 import Select from './Select'
-import TodayHero from './TodayHero'
+import { ArcCard, TodayHeader } from './TodayHeader'
+import UpNext, { pickUpNext } from './UpNext'
 
 function accountabilityMessage(pendingHabits, doneHabits, totalHabits, pendingTasks, doneTasks, totalTasks, hour) {
   const total = totalHabits + totalTasks
@@ -107,13 +107,8 @@ export default function TodayView({
   onResumeFocus,
   onStopFocus,
   onFsChange,
-  focusAllowlist,
-  focusBlocklist,
-  onAddAllowDomain,
-  onRemoveAllowDomain,
-  onAddBlockDomain,
-  onRemoveBlockDomain,
   blockerInstalled,
+  onManageBlocker,
 }) {
   const key = todayKey()
   const now = new Date()
@@ -139,7 +134,6 @@ export default function TodayView({
   const doneTasksCount = todayTasksList.filter((t) => t.done).length
   const totalTasksCount = todayTasksList.length
   const pendingTasksCount = totalTasksCount - doneTasksCount
-  const quote = quoteOfTheDay(key)
   const nowHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
   const yesterday = addDays(now, -1)
@@ -157,6 +151,11 @@ export default function TodayView({
     localStorage.setItem(`misses-hidden-${yKey}`, '1')
     setMissesHidden(true)
   }
+
+  const evening = now.getHours() >= 18
+  const [wrapOpen, setWrapOpen] = useState(evening)
+  const [showMissPanel, setShowMissPanel] = useState(false)
+  const pick = pickUpNext({ habits: locked ? [] : habits, completions, skips, tasks, key, nowHM }) // strict mode locks habits, so never offer one
 
   const sorted = [...due].sort((a, b) => {
     const da = isDone(a, completions, key) || isSkipped(a)
@@ -180,38 +179,42 @@ export default function TodayView({
     }
   }
 
+  const coachEl = (
+    <AICoach
+      enabled={aiEnabled}
+      model={aiModel}
+      motivation={motivation}
+      habits={habits}
+      completions={completions}
+      tasks={tasks}
+      goals={goals}
+      onSave={onSaveMotivation}
+      onOpenCoach={onOpenCoach}
+    />
+  )
+
   return (
     <div className="space-y-6">
       <Confetti active={confetti} />
-      <TodayHero
+      <TodayHeader
         name={name}
         message={accountabilityMessage(pending, doneCount, due.length, pendingTasksCount, doneTasksCount, totalTasksCount, now.getHours())}
-        focusMinutesToday={focusMinutesToday}
-        focusRunning={!!focus?.running}
-        habitsDone={doneCount}
-        habitsTotal={activeDue.length}
-        tasksDone={doneTasksCount}
-        tasksTotal={totalTasksCount}
-        focusLog={focusLog}
         habits={habits}
         completions={completions}
-        arcs={arcs}
-        onNewArc={onNewArc}
       />
-      <AICoach
-        enabled={aiEnabled}
-        model={aiModel}
-        motivation={motivation}
-        habits={habits}
-        completions={completions}
-        tasks={tasks}
-        goals={goals}
-        onSave={onSaveMotivation}
-        onOpenCoach={onOpenCoach}
-      />
-      {afterCoach}
-      {/* yesterday's misses — demand a reason (full-width banner at top) */}
-      {yMissed.length > 0 && !missesHidden && (
+      {/* yesterday's misses: a slim bar once explained; the full form only while locked */}
+      {yMissed.length > 0 && !missesHidden && !locked && !showMissPanel && (
+        <div className="glass flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-sm">
+          <p className="font-semibold text-neutral-600 dark:text-neutral-300">
+            {yMissed.length} miss{yMissed.length > 1 ? 'es' : ''} from yesterday, all explained.
+          </p>
+          <span className="flex items-center gap-2">
+            <button onClick={() => setShowMissPanel(true)} className="text-xs font-bold text-neutral-500 underline-offset-2 hover:underline dark:text-neutral-400">Review</button>
+            <button onClick={hideMisses} className="text-xs font-bold text-neutral-500 underline-offset-2 hover:underline dark:text-neutral-400">Hide</button>
+          </span>
+        </div>
+      )}
+      {yMissed.length > 0 && !missesHidden && (locked || showMissPanel) && (
         <section className="glass rounded-3xl p-6 ring-1 ring-[var(--accent)]/50">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-extrabold tracking-tight text-neutral-900 dark:text-white">
@@ -300,6 +303,9 @@ export default function TodayView({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left Column: Habits checklist, Daily tasks, Daily Journal (span 8) */}
         <div className="space-y-6 lg:col-span-8">
+          <UpNext pick={pick} dayKey={key} onDoneHabit={onToggle} onDoneTask={onToggleTask} onFocus={onStartFocus} onPlan={() => onOpenCoach?.('Plan my day. Pick my top 3 priorities from today’s habits and tasks and tell me what to do first.')} />
+          <div className="lg:hidden">{coachEl}</div>
+          {afterCoach}
           {/* Habit checklist */}
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
@@ -385,7 +391,8 @@ export default function TodayView({
             onDeleteRecurring={onDeleteRecurring}
           />
 
-          {/* Daily journal + mood */}
+          {wrapOpen ? (
+            <>
           <section className="glass rounded-3xl p-6">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
               Wrap up your day
@@ -400,10 +407,24 @@ export default function TodayView({
             />
           </section>
           {wrapUp}
+            </>
+          ) : (
+            <button
+              onClick={() => setWrapOpen(true)}
+              className="glass flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition hover:-translate-y-0.5"
+            >
+              <span>
+                <span className="block text-sm font-bold text-neutral-900 dark:text-white">Wrap up your day</span>
+                <span className="block text-xs font-medium text-neutral-400 dark:text-neutral-500">Mood, journal and a 30-second check-in — best after 6pm</span>
+              </span>
+              <ChevronDown className="h-4 w-4 shrink-0 text-neutral-400" />
+            </button>
+          )}
         </div>
 
         {/* Right Column: Progress ring, Focus Timer, AI Coach, Quote widget (span 4) */}
         <div className="space-y-6 lg:col-span-4">
+          <ArcCard arcs={arcs} onNewArc={onNewArc} />
           {/* Pomodoro timer */}
           <FocusTimer
             focus={focus}
@@ -415,20 +436,12 @@ export default function TodayView({
             onResume={onResumeFocus}
             onStop={onStopFocus}
             onFsChange={onFsChange}
-            allowlist={focusAllowlist}
-            blocklist={focusBlocklist}
-            onAddAllowDomain={onAddAllowDomain}
-            onRemoveAllowDomain={onRemoveAllowDomain}
-            onAddBlockDomain={onAddBlockDomain}
-            onRemoveBlockDomain={onRemoveBlockDomain}
             blockerInstalled={blockerInstalled}
+            onManageBlocker={onManageBlocker}
           />
-
+          <div className="hidden lg:block">{coachEl}</div>
         </div>
       </div>
-      <p className="pt-2 text-center font-serif text-base italic text-neutral-400 dark:text-neutral-500">
-        “{quote.text}” <span className="not-italic text-xs font-semibold uppercase tracking-[0.14em]">— {quote.author}</span>
-      </p>
     </div>
   )
 }
@@ -474,6 +487,8 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
   const [taskDuration, setTaskDuration] = useState(1)
   const [view, setView] = useState('list') // 'list' | 'schedule'
   const [showRecurring, setShowRecurring] = useState(false)
+  const [openRow, setOpenRow] = useState(null) // task id whose time/link pickers are open
+  const [showMore, setShowMore] = useState(false) // time/link pickers in the add row
   const [date, setDate] = useState(() => new Date())
   const activeKey = view === 'list' ? dateKey(date) : dayKey
   const isToday = activeKey === todayKey()
@@ -590,6 +605,15 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
               </div>
 
               <div className="flex items-center gap-1.5 ml-7 sm:ml-0">
+                {openRow !== t.id && (t.time || t.goalId) && (
+                  <span className="hidden max-w-[10rem] truncate text-[11px] font-semibold text-neutral-400 sm:inline dark:text-neutral-500">
+                    {t.time ? hourLabel(parseInt(t.time, 10)) : ''}
+                    {t.time && t.goalId ? ' · ' : ''}
+                    {t.goalId ? goals.find((g) => g.id === t.goalId)?.title : ''}
+                  </span>
+                )}
+                {openRow === t.id && (
+                  <>
                 {/* Time Select */}
                 <Select
                   value={t.time ? String(parseInt(t.time, 10)) : ''}
@@ -636,6 +660,17 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
                     className="w-28 shrink-0"
                   />
                 )}
+                  </>
+                )}
+                <button
+                  onClick={() => setOpenRow(openRow === t.id ? null : t.id)}
+                  aria-label="Task options"
+                  aria-expanded={openRow === t.id}
+                  title="Time and link"
+                  className={`p-1 transition ${openRow === t.id ? 'text-neutral-900 dark:text-white' : 'text-neutral-300 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300'}`}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                </button>
                 <button
                   onClick={() => onDeleteTask(activeKey, t.id)}
                   className="text-neutral-300 transition hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300 p-1"
@@ -660,6 +695,18 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
           className="min-w-[140px] flex-1 rounded-xl border border-neutral-200 bg-transparent px-3.5 py-2 text-sm font-medium text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-600 dark:focus:border-white"
         />
         
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          aria-label="More options"
+          aria-expanded={showMore}
+          title="Time and link"
+          className={`rounded-xl border p-2 transition ${showMore ? 'border-neutral-900 text-neutral-900 dark:border-white dark:text-white' : 'border-neutral-200 text-neutral-400 hover:border-neutral-400 dark:border-neutral-800'}`}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+        </button>
+        {showMore && (
+          <>
         {/* Time select */}
         <Select
           value={taskTime}
@@ -703,13 +750,13 @@ function TodayTasks({ dayKey, tasks, goals, habits, recurringTasks, onAddTask, o
             className="w-40"
           />
         )}
+          </>
+        )}
         <button onClick={add} className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-bold text-white dark:bg-white dark:text-neutral-900">
           Add
         </button>
       </div>
       <p className="mt-2.5 text-xs font-medium text-neutral-400 dark:text-neutral-500">
-        Tip: Switch to <span className="font-bold">Schedule</span> to view or drag tasks directly onto a daily timeline grid.
-        {' '}
         <button onClick={() => setShowRecurring((v) => !v)} className="font-bold underline-offset-2 hover:underline">
           {recurringTasks.length > 0 ? `${recurringTasks.length} recurring` : 'Add recurring tasks'}
         </button>
