@@ -1,11 +1,11 @@
-import { activeArcs, arcDay, MAX_ACTIVE_ARCS, pendingWeek, staleDays } from '../arcs'
+import { activeArcs, arcDay, MAX_ACTIVE_ARCS, needsReview, pendingWeek, staleDays } from '../arcs'
 
 const ghostBtn =
   'rounded-full border border-neutral-200 px-3.5 py-1.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-400 disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500'
 
 // Active arcs as cards. `compact` (Today tab) shows a slim line per arc; the Plan
 // tab shows full cards, paused arcs and the "Start an arc" entry point.
-export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, onCheckin }) {
+export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, onCheckin, onReview }) {
   const arcs = data.arcs || []
   const active = activeArcs(arcs)
   const paused = arcs.filter((a) => a.status === 'paused')
@@ -38,6 +38,7 @@ export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, 
           const wk = a.weeks?.[weekIdx] || {}
           const quiet = staleDays(a, data)
           const nextWeek = pendingWeek(a)
+          const review = needsReview(a)
           return (
             <div key={a.id} className="rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
               <div className="flex items-start justify-between gap-3">
@@ -78,6 +79,12 @@ export default function ArcsPanel({ data, compact = false, onNew, onResolveArc, 
                 <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
                   <span className="font-bold">Bad day? </span>{a.minDay}
                 </p>
+              )}
+              {review && (
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-neutral-900 p-3 text-white dark:bg-white dark:text-neutral-900">
+                  <p className="text-xs font-semibold">This arc has finished. Review it and plan what’s next.</p>
+                  <button className="shrink-0 rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-neutral-900 dark:bg-neutral-900 dark:text-white" onClick={() => onReview(a.id)}>Review arc</button>
+                </div>
               )}
               {nextWeek != null && (
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-neutral-900 p-3 text-white dark:bg-white dark:text-neutral-900">

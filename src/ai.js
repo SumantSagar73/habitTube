@@ -2,6 +2,7 @@ import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from '.
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
 import { normalizeArcPlan, normalizeWeekPlan } from './arcs'
+import { byokRequest, getByok } from './byok'
 
 export const DEFAULT_MODEL = 'openai/gpt-oss-120b'
 // Hosted models. The provider is implied by the model id (the server picks the
@@ -30,13 +31,29 @@ async function aiHeaders() {
 // Saved settings may name a retired model; fall back so the proxy allowlist doesn't reject it.
 export const safeModel = (m) => (AI_MODELS.some((x) => x.id === m) ? m : DEFAULT_MODEL)
 
+// Where a request goes: the user's own provider (BYOK) when enabled, else our proxy.
+async function aiTarget(model) {
+  const b = getByok()
+  if (b) return { ...byokRequest(b), model: b.model, byok: true }
+  return { url: '/ai/chat/completions', headers: await aiHeaders(), model: safeModel(model), byok: false }
+}
+
+function httpError(status, text, byok) {
+  if (status === 401 || status === 403) {
+    return new Error(byok ? 'Your API key was rejected. Check it in Settings → AI.' : 'AI request was rejected (401). Sign in again, or check the provider API key.')
+  }
+  if (status === 429) return new Error('Rate limit hit (429). Wait a moment and try again.')
+  return new Error(`AI error ${status}. ${text.slice(0, 160)}`)
+}
+
 async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450, json = false, reasoning } = {}) {
-  model = safeModel(model)
+  const t = await aiTarget(model)
+  model = t.model
   let res
   try {
-    res = await fetch('/ai/chat/completions', {
+    res = await fetch(t.url, {
       method: 'POST',
-      headers: await aiHeaders(),
+      headers: t.headers,
       body: JSON.stringify({ model, messages, temperature, max_tokens, ...(json ? { response_format: { type: 'json_object' } } : {}), ...(reasoning && model.startsWith('openai/gpt-oss') ? { reasoning_effort: reasoning } : {}) }),
     })
   } catch {
@@ -45,16 +62,12 @@ async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_to
   const text = await res.text()
   // Some models reject JSON mode — retry once as plain text; callers parse leniently.
   if (json && res.status === 400) return chat(messages, { model, temperature, max_tokens, json: false, reasoning })
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check the provider API key.')
-    if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
-    throw new Error(`AI error ${res.status}. ${text.slice(0, 160)}`)
-  }
+  if (!res.ok) throw httpError(res.status, text, t.byok)
   let data
   try {
     data = JSON.parse(text)
   } catch {
-    throw new Error('AI only works with the dev server running (npm run dev).')
+    throw new Error('The AI returned an unreadable response. Try again.')
   }
   return data.choices?.[0]?.message?.content?.trim() || ''
 }
@@ -345,7 +358,7 @@ UPDATES — adjust existing items (user still confirms):
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
 
-export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {} }) {
+export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {}, dayCheckins = {} }) {
   const ctx = { goals, tasks, habits, completions }
   const key = todayKey()
   const byId = Object.fromEntries(goals.map((g) => [g.id, g]))
@@ -389,6 +402,15 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
         .join('; ')}.`
     : 'No tasks added for today yet.'
 
+  const recentCheckins = Object.entries(dayCheckins)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 5)
+  const checkinLine = recentCheckins.length
+    ? `Evening check-ins (did the day match the plan): ${recentCheckins
+        .map(([d, c]) => `${d.slice(5)} ${c.match}${c.blockers?.length ? ` (${c.blockers.join(', ')})` : ''}${c.win ? ` win: ${c.win}` : ''}`)
+        .join('; ')}.`
+    : ''
+
   const lastReview = Object.entries(reviews)
     .filter(([, r]) => r?.note)
     .sort((a, b) => (b[1].ratedAt || 0) - (a[1].ratedAt || 0))[0]
@@ -411,6 +433,7 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
     taskLine,
     reasons.length ? `Recent reasons for skipping: ${reasons.slice(0, 10).join(' / ')}.` : 'No skip reasons logged.',
     notesLine,
+    checkinLine,
     lastReview ? `Most recent review note: "${lastReview[1].note}".` : '',
   ].filter(Boolean).join('\n')
 }
@@ -429,12 +452,13 @@ export function aiCoachReply(messages, contextText, model = DEFAULT_MODEL) {
 
 // Streaming chat. Yields text deltas as they arrive.
 export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL) {
-  model = safeModel(model)
+  const t = await aiTarget(model)
+  model = t.model
   let res
   try {
-    res = await fetch('/ai/chat/completions', {
+    res = await fetch(t.url, {
       method: 'POST',
-      headers: await aiHeaders(),
+      headers: t.headers,
       body: JSON.stringify({
         model,
         // Strip UI-only fields (proposal/applied/dismissed) — providers reject any
@@ -451,13 +475,8 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
   } catch {
     throw new Error('Could not reach the AI. Check your connection and try again.')
   }
-  if (!res.ok) {
-    const t = await res.text()
-    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check the provider API key.')
-    if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
-    throw new Error(`AI error ${res.status}. ${t.slice(0, 160)}`)
-  }
-  if (!res.body) throw new Error('AI only works with the dev server running (npm run dev).')
+  if (!res.ok) throw httpError(res.status, await res.text(), t.byok)
+  if (!res.body) throw new Error('The AI returned an unreadable response. Try again.')
 
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
@@ -579,4 +598,36 @@ export function parseProposal(text) {
 
   const clean = text.replace(raw, '').replace(/\n{3,}/g, '\n\n').trim()
   return { clean: clean || 'Here\'s a plan you can add:', proposal: items }
+}
+
+const REVIEW_SYSTEM = `You are an honest, encouraging coach reviewing a finished arc. Reply with ONLY one JSON object, no prose, no code fences.
+Schema: {"summary":"2 sentences, honest, using the numbers","wins":["2-3 specific wins"],"lessons":["2-3 specific lessons about what slowed them"],"next":{"theme":"a natural next arc name","why":"one sentence"}}
+Keep each string under 18 words. No flattery: if completion was low, say so kindly and plan smaller.`
+
+export async function aiArcReview(arc, summary, model) {
+  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : 'n/a')
+  const user = [
+    `Arc: "${arc.title}" — ${arc.why || ''} (${arc.weeks.length} weeks).`,
+    arc.meta?.outcome ? `Intended outcome: ${arc.meta.outcome}.` : '',
+    `Habits done: ${summary.habitDone}/${summary.habitDue} (${pct(summary.habitDone, summary.habitDue)}). Tasks done: ${summary.taskDone}/${summary.taskTotal} (${pct(summary.taskDone, summary.taskTotal)}).`,
+    summary.goalPct != null ? `Goal "${summary.goalTitle}" progress: ${summary.goalPct}%.` : '',
+    Object.keys(summary.feel).length ? `How weeks felt: ${Object.entries(summary.feel).map(([k, v]) => `${k} x${v}`).join(', ')}.` : '',
+    (arc.checkins || []).flatMap((c) => c.blockers || []).length
+      ? `Blockers named: ${[...new Set((arc.checkins || []).flatMap((c) => c.blockers || []))].join(', ')}.`
+      : '',
+  ].filter(Boolean).join('\n')
+  const out = await chat(
+    [{ role: 'system', content: REVIEW_SYSTEM }, { role: 'user', content: user }],
+    { model, temperature: 0.6, max_tokens: 1200, json: true, reasoning: 'low' }
+  )
+  let raw = null
+  try { raw = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)) } catch { /* handled below */ }
+  if (!raw || !String(raw.summary || '').trim()) throw new Error('The AI reply could not be read. Try again.')
+  const list = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean).slice(0, 4) : [])
+  return {
+    summary: String(raw.summary).trim(),
+    wins: list(raw.wins),
+    lessons: list(raw.lessons),
+    next: raw.next?.theme ? { theme: String(raw.next.theme).trim(), why: String(raw.next.why || '').trim() } : null,
+  }
 }

@@ -30,6 +30,7 @@ const DEFAULT_DATA = {
   focusBlocklist: ['youtube.com'], // off-limits domains — hard-blocked, no temp-allow escape
   shareProfile: false, // when true, push public snapshot for sharing
   arcs: [], // time-boxed arcs, see arcs.js
+  dayCheckins: {}, // { 'YYYY-MM-DD': { match, blockers, win, at } } evening check-ins
   arcNotify: true, // nudge when an arc goes quiet or is about to end
 }
 

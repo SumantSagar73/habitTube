@@ -4,7 +4,7 @@
 // arc: { id, title, why, startDate, endDate, status: 'active'|'paused'|'closed',
 //        weeks: [{ theme, milestone }], minDay, goalId, habitIds, resumedAt?, closedAt?, createdAt }
 import { GOAL_COLORS } from './palette'
-import { currentPeriods, periodKeys } from './planUtils'
+import { currentPeriods, goalPercent, periodKeys } from './planUtils'
 import { addDays, dateKey, isDone, isScheduled, parseKey, todayKey, uid } from './utils'
 
 export const MAX_ACTIVE_ARCS = 2
@@ -229,4 +229,34 @@ export function buildWeekPatch(data, arc, weekIdx, weekPlan) {
     ;(tasksByDay[dk] ||= []).push({ id: uid(), title: t.title, done: false, goalId: goal.id, priority: t.priority, arcId: arc.id })
   }
   return { goal, tasksByDay }
+}
+
+// An active arc whose end date has passed and hasn't been reviewed/closed yet.
+export function needsReview(arc, today = todayKey()) {
+  return arc.status === 'active' && today > arc.endDate
+}
+
+// Whole-arc numbers for the end review.
+export function arcSummary(arc, data) {
+  let habitDue = 0, habitDone = 0, taskTotal = 0, taskDone = 0
+  for (let i = 0; i < arc.weeks.length; i++) {
+    const s = weekStats(arc, data, i)
+    habitDue += s.habitDue
+    habitDone += s.habitDone
+    taskTotal += s.taskTotal
+    taskDone += s.taskDone
+  }
+  const goal = (data.goals || []).find((g) => g.id === arc.goalId)
+  const feel = {}
+  for (const c of arc.checkins || []) if (c.rating) feel[c.rating] = (feel[c.rating] || 0) + 1
+  return {
+    habitDue,
+    habitDone,
+    taskTotal,
+    taskDone,
+    goalTitle: goal?.title || arc.title,
+    goalPct: goal ? goalPercent(goal, data) : null,
+    weeksChecked: (arc.checkins || []).length,
+    feel,
+  }
 }

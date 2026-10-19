@@ -1,22 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import exportExcel from './exportExcel'
 import { playAlarm } from './sounds'
 import AuthScreen from './components/AuthScreen'
-import LandingPage from './components/LandingPage'
-import CalendarView from './components/CalendarView'
-import CoachChat from './components/CoachChat'
 import CoachWidget from './components/CoachWidget'
 import { fmtClock } from './components/FocusTimer'
 import ArcWizard from './components/ArcWizard'
 import ArcCheckin from './components/ArcCheckin'
+import ArcReview from './components/ArcReview'
+import DayCheckin from './components/DayCheckin'
 import ArcsPanel from './components/ArcsPanel'
 import GoalWizard from './components/GoalWizard'
 import HabitDetail from './components/HabitDetail'
 import HabitModal from './components/HabitModal'
-import InsightsView from './components/InsightsView'
 import ManageView from './components/ManageView'
 import OnboardingFlow from './components/OnboardingFlow'
-import PlanView from './components/PlanView'
 import PWABanner from './components/PWABanner'
 import SettingsModal from './components/SettingsModal'
 import TodayView from './components/TodayView'
@@ -35,6 +32,14 @@ import { maybeDailySnapshot } from './snapshots'
 import { startBlocking, stopBlocking, blockerInstalled } from './focusBlocker'
 import { supabase } from './utils/supabase'
 import { addDays, dateKey, todayKey, uid } from './utils'
+
+// Heavy views load on demand to keep the first bundle small (recharts lives in Insights).
+const LandingPage = lazy(() => import('./components/LandingPage'))
+const CalendarView = lazy(() => import('./components/CalendarView'))
+const CoachChat = lazy(() => import('./components/CoachChat'))
+const InsightsView = lazy(() => import('./components/InsightsView'))
+const PlanView = lazy(() => import('./components/PlanView'))
+const viewFallback = <div className="py-24 text-center text-sm font-medium text-neutral-400">Loading…</div>
 
 const LEVEL_ORDER = ['year', 'quarter', 'month', 'week']
 
@@ -57,6 +62,8 @@ export default function App() {
   const [wizard, setWizard] = useState(false)
   const [arcWizard, setArcWizard] = useState(false)
   const [checkinArcId, setCheckinArcId] = useState(null)
+  const [reviewArcId, setReviewArcId] = useState(null)
+  const [arcSeed, setArcSeed] = useState('')
   const [settings, setSettings] = useState(false)
   const [focus, setFocus] = useState(() => {
     try {
@@ -610,6 +617,19 @@ export default function App() {
     })
   }
 
+  // Close a finished arc, keeping its review, and optionally start the next one.
+  function finishArc(id, review, nextTheme) {
+    setData((d) => ({
+      ...d,
+      arcs: (d.arcs || []).map((a) => (a.id === id ? { ...a, status: 'closed', closedAt: todayKey(), ...(review ? { review } : {}) } : a)),
+    }))
+    setReviewArcId(null)
+    if (nextTheme != null) {
+      setArcSeed(nextTheme)
+      setArcWizard(true)
+    }
+  }
+
   // Resume / pause / close an arc. Resuming counts as activity (resets the quiet timer).
   function resolveArc(id, action) {
     const status = { resume: 'active', pause: 'paused', close: 'closed' }[action]
@@ -737,7 +757,7 @@ export default function App() {
   if (!user) {
     return showAuth
       ? <AuthScreen onAuth={(u) => { setUser(u); setShowAuth(false) }} onBack={() => setShowAuth(false)} />
-      : <LandingPage onOpenAuth={() => setShowAuth(true)} />
+      : <Suspense fallback={null}><LandingPage onOpenAuth={() => setShowAuth(true)} /></Suspense>
   }
 
   return (
@@ -923,8 +943,12 @@ export default function App() {
         {tab !== 'plan' && <div className="h-6" />}
 
         <main className="animate-fade-up" key={tab}>
+          <Suspense fallback={viewFallback}>
           {(tab === 'today' || tab === 'plan') && !timerFs && (
-            <ArcsPanel data={data} compact={tab === 'today'} onNew={() => setArcWizard(true)} onResolveArc={resolveArc} onCheckin={setCheckinArcId} />
+            <ArcsPanel data={data} compact={tab === 'today'} onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
+          )}
+          {tab === 'today' && !timerFs && (
+            <DayCheckin data={data} onSave={(k, entry) => setData((d) => ({ ...d, dayCheckins: { ...(d.dayCheckins || {}), [k]: entry } }))} />
           )}
           {tab === 'today' && (
             <TodayView
@@ -1064,6 +1088,7 @@ export default function App() {
               onApplyPlan={applyPlan}
             />
           )}
+        </Suspense>
         </main>
 
         <footer className="mt-16 border-t border-neutral-200 pt-6 text-center text-xs font-medium text-neutral-400 dark:border-neutral-800 dark:text-neutral-600">
@@ -1145,9 +1170,23 @@ export default function App() {
           />
         )
       })()}
+      {reviewArcId && (() => {
+        const arc = (data.arcs || []).find((x) => x.id === reviewArcId)
+        if (!arc) return null
+        return (
+          <ArcReview
+            arc={arc}
+            data={data}
+            aiEnabled={data.aiEnabled}
+            onFinish={(review, nextTheme) => finishArc(arc.id, review, nextTheme)}
+            onClose={() => setReviewArcId(null)}
+          />
+        )
+      })()}
       {arcWizard && (
         <ArcWizard
           data={data}
+          seed={arcSeed}
           aiEnabled={data.aiEnabled}
           onApply={(plan) => {
             applyArc(plan)

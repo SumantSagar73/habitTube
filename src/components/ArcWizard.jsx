@@ -22,8 +22,8 @@ const primaryBtn =
 const ghostBtn =
   'rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500'
 
-export default function ArcWizard({ data, aiEnabled, onApply, onResolveArc, onClose }) {
-  const [answers, setAnswers] = useState({ theme: '', outcome: '', weeks: 4, dailyTime: '1 hour', level: '', obstacles: [], extra: '' })
+export default function ArcWizard({ data, aiEnabled, seed = '', onApply, onResolveArc, onClose }) {
+  const [answers, setAnswers] = useState({ theme: seed, outcome: '', weeks: 4, dailyTime: '1 hour', level: '', obstacles: [], extra: '' })
   const [plan, setPlan] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')

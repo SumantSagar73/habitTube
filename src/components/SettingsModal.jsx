@@ -3,6 +3,7 @@ import { AI_MODELS, aiTest, providerOfModel, safeModel } from '../ai'
 import { todayKey } from '../utils'
 import { pullState } from '../sync'
 import { listSnapshots, saveSnapshot } from '../snapshots'
+import ByokSettings from './ByokSettings'
 import Select from './Select'
 
 export default function SettingsModal({
@@ -276,6 +277,8 @@ export default function SettingsModal({
             )}
           </>
         )}
+
+        {aiEnabled && <ByokSettings />}
 
         {/* reminders toggle */}
         <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">

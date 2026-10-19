@@ -1,6 +1,6 @@
 // Minimal offline cache: stale-while-revalidate for same-origin GETs so the
 // app shell loads without a network after the first visit.
-const CACHE = 'habittube-v1'
+const CACHE = 'habittube-v2'
 
 const PRECACHE_ASSETS = [
   '/',
@@ -8,7 +8,6 @@ const PRECACHE_ASSETS = [
   '/manifest.webmanifest',
   '/favicon.svg',
   '/icon.svg',
-  '/icons.svg',
 ]
 
 self.addEventListener('install', (e) => {
@@ -26,7 +25,15 @@ self.addEventListener('install', (e) => {
   self.skipWaiting()
 })
 
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
+// Drop caches from older versions so a deploy isn't served stale forever.
+self.addEventListener('activate', (e) =>
+  e.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  )
+)
 
 self.addEventListener('fetch', (e) => {
   const req = e.request
