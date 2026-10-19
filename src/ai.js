@@ -238,6 +238,7 @@ SCHEMA RULES:
 - habit: name (string), emoji (one emoji), days (array of 0-6 where 0=Sun), time (optional "HH:MM").
 - task: title, dayOffset 0-6 (0=today), optional priority high|medium|low.
 - Order in array: goals year→quarter→month→week, then habits, then tasks.
+- KEEP IT COMPACT (the reply has a length limit): max ~20 items total, max ~10 tasks. Cover only this week's tasks. Use a habit for anything that repeats instead of listing many tasks. Short titles.
 - Write explanation BEFORE the json block. Never say it's already added — user confirms by clicking the button.
 - Do NOT output any json if you are NOT proposing a complete plan (e.g. during the option-selection step).
 
@@ -329,7 +330,7 @@ export function aiCoachReply(messages, contextText, model = DEFAULT_MODEL) {
       { role: 'system', content: `${COACH_SYSTEM}\n\nUSER DATA SNAPSHOT:\n${contextText}` },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ],
-    { model, temperature: 0.85, max_tokens: 2000 }
+    { model, temperature: 0.85, max_tokens: 4000 }
   )
 }
 
@@ -351,7 +352,7 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
         ],
         stream: true,
         temperature: 0.85,
-        max_tokens: 2000,
+        max_tokens: 4000,
       }),
     })
   } catch {
@@ -399,6 +400,36 @@ function filterItems(arr) {
   })
 }
 
+// Walk the array after `"plan":[` and JSON.parse each top-level object that is
+// fully closed. String-aware so braces inside titles don't confuse the depth count.
+function salvageTruncatedPlan(text) {
+  const m = /"plan"\s*:\s*\[/.exec(text)
+  if (!m) return null
+  const objs = []
+  let depth = 0, inStr = false, esc = false, objStart = -1
+  for (let i = m.index + m[0].length; i < text.length; i++) {
+    const c = text[i]
+    if (inStr) {
+      if (esc) esc = false
+      else if (c === '\\') esc = true
+      else if (c === '"') inStr = false
+      continue
+    }
+    if (c === '"') inStr = true
+    else if (c === '{') { if (depth++ === 0) objStart = i }
+    else if (c === '}' && --depth === 0 && objStart >= 0) {
+      try { objs.push(JSON.parse(text.slice(objStart, i + 1))) } catch { /* skip bad item */ }
+      objStart = -1
+    } else if (c === ']' && depth === 0) break
+  }
+  const items = filterItems(objs)
+  if (!items.length) return null
+  // Strip from the opening fence (or the object start) to the end of the reply.
+  const fence = text.lastIndexOf('```', m.index)
+  const from = fence >= 0 ? fence : text.lastIndexOf('{', m.index)
+  return { raw: text.slice(from), items }
+}
+
 // Pull a plan the coach may have appended out of its reply.
 // Handles all formats the model might emit:
 //   {"plan":[...]}          ← ideal
@@ -442,6 +473,13 @@ export function parseProposal(text) {
         } catch { /* ignore */ }
       }
     }
+  }
+
+  // Last resort: the reply was cut off mid-plan (token limit). Keep every
+  // complete item that arrived instead of losing the whole plan.
+  if (!items) {
+    const salvaged = salvageTruncatedPlan(text)
+    if (salvaged) { raw = salvaged.raw; items = salvaged.items }
   }
 
   if (!items) return { clean: text.trim(), proposal: null }

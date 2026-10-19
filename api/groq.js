@@ -5,7 +5,7 @@ export const config = {
 // Models the app may request, plus hard caps, so a stolen/abused session can't
 // run arbitrary or expensive completions on our Groq key.
 const ALLOWED_MODELS = new Set(['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'])
-const MAX_TOKENS_CAP = 2000
+const MAX_TOKENS_CAP = 4096
 const MAX_BODY_BYTES = 64 * 1024
 const RATE_LIMIT = 30 // requests per user per minute (best-effort, per edge instance)
 const hits = new Map()
