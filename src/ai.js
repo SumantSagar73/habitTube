@@ -2,13 +2,19 @@ import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from '.
 import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
 
-export const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
+export const DEFAULT_MODEL = 'openai/gpt-oss-120b'
+// Hosted models. The provider is implied by the model id (the server picks the
+// upstream from it), so a saved `aiModel` string is all the app needs to store.
+// Keep in sync with MODELS in api/ai.js.
 export const AI_MODELS = [
-  { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B — smartest' },
-  { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B — fastest' },
+  { id: 'gemini-2.5-flash', provider: 'Gemini', label: 'Gemini 2.5 Flash — best for plans' },
+  { id: 'gemini-2.5-flash-lite', provider: 'Gemini', label: 'Gemini 2.5 Flash-Lite — cheapest' },
+  { id: 'openai/gpt-oss-120b', provider: 'Groq', label: 'GPT-OSS 120B — smart' },
+  { id: 'openai/gpt-oss-20b', provider: 'Groq', label: 'GPT-OSS 20B — fastest' },
 ]
+export const providerOfModel = (id) => AI_MODELS.find((m) => m.id === id)?.provider || 'Groq'
 
-// The production proxy (api/groq.js) requires a valid Supabase session.
+// The production proxy (api/ai.js) requires a valid Supabase session.
 async function aiHeaders() {
   const headers = { 'Content-Type': 'application/json' }
   try {
@@ -18,16 +24,16 @@ async function aiHeaders() {
   return headers
 }
 
-// Low-level call. The Groq key is attached server-side (Vite dev proxy locally,
-// api/groq.js on Vercel), so the browser never sees it.
+// Low-level call. Provider keys are attached server-side (Vite dev proxy locally,
+// api/ai.js on Vercel), so the browser never sees it.
 // Saved settings may name a retired model; fall back so the proxy allowlist doesn't reject it.
-const safeModel = (m) => (AI_MODELS.some((x) => x.id === m) ? m : DEFAULT_MODEL)
+export const safeModel = (m) => (AI_MODELS.some((x) => x.id === m) ? m : DEFAULT_MODEL)
 
 async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_tokens = 450 } = {}) {
   model = safeModel(model)
   let res
   try {
-    res = await fetch('/groq/chat/completions', {
+    res = await fetch('/ai/chat/completions', {
       method: 'POST',
       headers: await aiHeaders(),
       body: JSON.stringify({ model, messages, temperature, max_tokens }),
@@ -37,7 +43,7 @@ async function chat(messages, { model = DEFAULT_MODEL, temperature = 0.8, max_to
   }
   const text = await res.text()
   if (!res.ok) {
-    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check GROQ_API_KEY.')
+    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check the provider API key.')
     if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
     throw new Error(`AI error ${res.status}. ${text.slice(0, 160)}`)
   }
@@ -339,12 +345,12 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
   model = safeModel(model)
   let res
   try {
-    res = await fetch('/groq/chat/completions', {
+    res = await fetch('/ai/chat/completions', {
       method: 'POST',
       headers: await aiHeaders(),
       body: JSON.stringify({
         model,
-        // Strip UI-only fields (proposal/applied/dismissed) — Groq rejects any
+        // Strip UI-only fields (proposal/applied/dismissed) — providers reject any
         // message property beyond role/content.
         messages: [
           { role: 'system', content: `${COACH_SYSTEM}\n\nUSER DATA SNAPSHOT:\n${contextText}` },
@@ -360,7 +366,7 @@ export async function* aiChatStream(messages, contextText, model = DEFAULT_MODEL
   }
   if (!res.ok) {
     const t = await res.text()
-    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check GROQ_API_KEY.')
+    if (res.status === 401) throw new Error('AI request was rejected (401). Sign in again, or check the provider API key.')
     if (res.status === 429) throw new Error('Rate limit hit (429). Wait a moment and try again.')
     throw new Error(`AI error ${res.status}. ${t.slice(0, 160)}`)
   }

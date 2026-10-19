@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AI_MODELS, aiTest } from '../ai'
+import { AI_MODELS, aiTest, providerOfModel, safeModel } from '../ai'
 import { todayKey } from '../utils'
 import { pullState } from '../sync'
 import { listSnapshots, saveSnapshot } from '../snapshots'
@@ -168,7 +168,7 @@ export default function SettingsModal({
       visions: parsed.visions && typeof parsed.visions === 'object' && !Array.isArray(parsed.visions) ? parsed.visions : {},
       reviews: parsed.reviews && typeof parsed.reviews === 'object' && !Array.isArray(parsed.reviews) ? parsed.reviews : {},
       aiEnabled: typeof parsed.aiEnabled === 'boolean' ? parsed.aiEnabled : true,
-      aiModel: typeof parsed.aiModel === 'string' ? parsed.aiModel : 'llama-3.3-70b-versatile',
+      aiModel: typeof parsed.aiModel === 'string' ? parsed.aiModel : 'openai/gpt-oss-120b',
       ai: parsed.ai && typeof parsed.ai === 'object' ? parsed.ai : { motivation: null, insights: null },
       chat: parsed.chat && typeof parsed.chat === 'object' && Array.isArray(parsed.chat.messages) ? parsed.chat : { messages: [] },
       moods: parsed.moods && typeof parsed.moods === 'object' && !Array.isArray(parsed.moods) ? parsed.moods : {},
@@ -248,10 +248,10 @@ export default function SettingsModal({
             <label className="mt-5 mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
               Model
             </label>
-            <Select value={aiModel} onChange={(e) => onSetModel(e.target.value)}>
+            <Select value={safeModel(aiModel)} onChange={(e) => onSetModel(e.target.value)}>
               {AI_MODELS.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.label}
+                  {m.provider} · {m.label}
                 </option>
               ))}
             </Select>
@@ -264,7 +264,7 @@ export default function SettingsModal({
               {testState === 'testing'
                 ? 'Testing connection…'
                 : testState === 'ok'
-                  ? '✓ Connected to Groq'
+                  ? `✓ Connected to ${providerOfModel(safeModel(aiModel))}`
                   : testState === 'fail'
                     ? '✗ Test failed — retry'
                     : 'Test AI connection'}
@@ -489,7 +489,7 @@ export default function SettingsModal({
         )}
 
         <p className="mt-6 text-xs leading-relaxed font-medium text-neutral-400 dark:text-neutral-500">
-          AI runs through a server-side proxy that injects the Groq API key, so the key never enters the browser bundle.
+          AI runs through a server-side proxy that injects the provider API key, so the key never enters the browser bundle.
           It works both on the deployed site (via the <span className="font-bold">/api/groq</span> serverless function) and
           locally with <span className="font-bold">npm run dev</span>. Install HabitTube to your device from your
           browser's "Install app" option.

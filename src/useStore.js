@@ -13,7 +13,7 @@ const DEFAULT_DATA = {
   visions: {}, // { '2026': 'my north-star vision for the year' }
   reviews: {}, // { periodKey: { done, note, goalNotes: { goalId: 'why short' }, ratedAt } }
   aiEnabled: true,
-  aiModel: 'llama-3.3-70b-versatile',
+  aiModel: 'openai/gpt-oss-120b',
   ai: { motivation: null, insights: null }, // cached generations
   chat: { messages: [] }, // coach conversation history (legacy widget)
   chatSessions: [], // [{ id, title, createdAt, updatedAt, messages: [] }]

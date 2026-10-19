@@ -2,9 +2,20 @@ export const config = {
   runtime: 'edge',
 }
 
-// Models the app may request, plus hard caps, so a stolen/abused session can't
-// run arbitrary or expensive completions on our Groq key.
-const ALLOWED_MODELS = new Set(['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'])
+// Hosted providers. Both speak the OpenAI chat-completions format. The provider
+// is picked from the requested model, and only allowlisted models are accepted,
+// so a stolen/abused session can't run arbitrary or expensive completions on our keys.
+// Keep MODELS in sync with AI_MODELS in src/ai.js.
+const PROVIDERS = {
+  groq: { url: 'https://api.groq.com/openai/v1/chat/completions', keyEnv: 'GROQ_API_KEY' },
+  gemini: { url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', keyEnv: 'GEMINI_API_KEY' },
+}
+const MODELS = {
+  'openai/gpt-oss-120b': 'groq',
+  'openai/gpt-oss-20b': 'groq',
+  'gemini-2.5-flash': 'gemini',
+  'gemini-2.5-flash-lite': 'gemini',
+}
 const MAX_TOKENS_CAP = 4096
 const MAX_BODY_BYTES = 64 * 1024
 const RATE_LIMIT = 30 // requests per user per minute (best-effort, per edge instance)
@@ -46,9 +57,6 @@ async function verifyUser(req) {
 export default async function handler(req) {
   if (req.method !== 'POST') return json(405, 'Method not allowed')
 
-  const key = process.env.GROQ_API_KEY
-  if (!key) return json(500, 'GROQ_API_KEY is not configured on Vercel')
-
   const userId = await verifyUser(req)
   if (!userId) return json(401, 'Sign in to use the AI coach.')
   if (rateLimited(userId)) return json(429, 'Too many AI requests. Wait a minute and try again.')
@@ -68,10 +76,17 @@ export default async function handler(req) {
     } catch {
       return json(400, 'Invalid JSON')
     }
-    if (!ALLOWED_MODELS.has(body.model)) return json(400, 'Model not allowed')
+    const provider = PROVIDERS[MODELS[body.model]]
+    if (!provider) return json(400, 'Model not allowed')
+    const key = process.env[provider.keyEnv]
+    if (!key) return json(500, `${provider.keyEnv} is not configured on Vercel`)
     body.max_tokens = Math.min(Number(body.max_tokens) || 450, MAX_TOKENS_CAP)
+    // Gemini 2.5 Flash "thinks" by default, and thinking tokens eat the output budget.
+    if (body.model === 'gemini-2.5-flash' && body.reasoning_effort == null) body.reasoning_effort = 'none'
+    // GPT-OSS on Groq is a reasoning model: keep it brief and hide the reasoning text.
+    if (body.model.startsWith('openai/gpt-oss')) { body.reasoning_effort ??= 'low'; body.reasoning_format ??= 'hidden' }
 
-    const upstreamRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const upstreamRes = await fetch(provider.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
