@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { aiNextWeek } from '../ai'
 import { arcDay, weekStats } from '../arcs'
+import { studySummary } from '../resources'
+import { addDays, dateKey } from '../utils'
 
 const RATINGS = ['Too easy', 'Just right', 'Too hard']
 const BLOCKERS = ['No time', 'Low energy', 'Lost motivation', 'Distractions', 'Plan was unclear', 'Got sick / travelled']
@@ -33,7 +35,8 @@ export default function ArcCheckin({ arc, weekIdx, data, onApply, onClose }) {
   const cur = arc.weeks[weekIdx] || {}
   const habitPct = stats.habitDue ? Math.round((stats.habitDone / stats.habitDue) * 100) : null
   const toggle = (b) => setBlockers((l) => (l.includes(b) ? l.filter((x) => x !== b) : [...l, b]))
-  const feedback = { rating: rating.toLowerCase(), blockers, extra }
+  const study = studySummary(data.resources || [], { arcId: arc.id, sinceKey: dateKey(addDays(new Date(), -7)) })
+  const feedback = { rating: rating.toLowerCase(), blockers, extra, study }
 
   async function generate() {
     setBusy(true)

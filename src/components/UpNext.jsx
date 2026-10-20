@@ -1,5 +1,6 @@
-import { Check, Play, Sparkles } from 'lucide-react'
+import { BookOpen, Check, Play, RotateCcw, Sparkles } from 'lucide-react'
 import { HabitIcon } from '../icons'
+import { dueRevisions, studyQueue } from '../resources'
 import { habitsForDate, isDone } from '../utils'
 
 const hourLabel = (hm) => {
@@ -7,9 +8,10 @@ const hourLabel = (hm) => {
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
 }
 
-// What to do right now, by this rule: a timed habit whose time has come, then a high
-// priority task, then the next timed habit, then any other open task, then untimed habits.
-export function pickUpNext({ habits, completions, skips, tasks, key, nowHM, date = new Date() }) {
+// What to do right now, by this rule: a timed habit whose time has come, then a high priority
+// task, then a revision that is due, then the next part of what you are studying, then the next
+// timed habit, any other open task, and finally untimed habits.
+export function pickUpNext({ habits, completions, skips, tasks, key, nowHM, resources = [], arcs = [], date = new Date() }) {
   const skipped = (h) => (skips?.[h.id] || []).includes(key)
   const pendingHabits = habitsForDate(habits, date).filter((h) => !isDone(h, completions, key) && !skipped(h))
   const openTasks = (tasks[key] || []).filter((t) => !t.done)
@@ -23,9 +25,18 @@ export function pickUpNext({ habits, completions, skips, tasks, key, nowHM, date
   const highTasks = tasksByPriority.filter((t) => t.priority === 'high')
   const otherTasks = tasksByPriority.filter((t) => t.priority !== 'high')
 
+  const revise = dueRevisions(resources, key)
+    .slice(0, 1)
+    .map(({ res, part }) => ({ kind: 'revise', item: part, res, why: `Revise · ${res.title}` }))
+  const study = studyQueue(resources, arcs)
+    .slice(0, 2)
+    .map(({ res, part, done, total }) => ({ kind: 'part', item: part, res, why: `Continue: ${res.title} · ${done}/${total}` }))
+
   const queue = [
     ...due.map((h) => ({ kind: 'habit', item: h, why: `Due at ${hourLabel(h.time)}` })),
     ...highTasks.map((t) => ({ kind: 'task', item: t, why: 'High priority' })),
+    ...revise,
+    ...study,
     ...upcoming.map((h) => ({ kind: 'habit', item: h, why: `Next, at ${hourLabel(h.time)}` })),
     ...otherTasks.map((t) => ({ kind: 'task', item: t, why: 'Open task' })),
     ...untimed.map((h) => ({ kind: 'habit', item: h, why: 'Any time today' })),
@@ -34,7 +45,7 @@ export function pickUpNext({ habits, completions, skips, tasks, key, nowHM, date
 }
 
 // The one thing to do now, with a way to finish it or focus on it.
-export default function UpNext({ pick, onDoneHabit, onDoneTask, onFocus, onPlan, dayKey }) {
+export default function UpNext({ pick, onDoneHabit, onDoneTask, onDonePart, onRevised, onFocus, onPlan, dayKey }) {
   const { next, more } = pick
 
   if (!next) {
@@ -57,9 +68,16 @@ export default function UpNext({ pick, onDoneHabit, onDoneTask, onFocus, onPlan,
     )
   }
 
-  const { kind, item, why } = next
+  const { kind, item, res, why } = next
   const title = kind === 'habit' ? item.name : item.title
-  const finish = () => (kind === 'habit' ? onDoneHabit(item.id) : onDoneTask(dayKey, item.id))
+  const study = kind === 'part' || kind === 'revise'
+  const finish = () => {
+    if (kind === 'habit') onDoneHabit(item.id)
+    else if (kind === 'task') onDoneTask(dayKey, item.id)
+    else if (kind === 'part') onDonePart(res.id, item.id)
+    else onRevised(res.id, item.id)
+  }
+  const focusLabel = study ? `${res.title}: ${title}` : title
 
   return (
     <section className="glow-mono rounded-3xl p-5 sm:p-6">
@@ -68,14 +86,14 @@ export default function UpNext({ pick, onDoneHabit, onDoneTask, onFocus, onPlan,
         {more > 0 && <p className="text-xs font-semibold text-white/50">{more} more after this</p>}
       </div>
       <div className="mt-3 flex items-center gap-4">
-        {kind === 'habit' && (
+        {(kind === 'habit' || study) && (
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-            <HabitIcon value={item.emoji} className="h-6 w-6" />
+            {kind === 'habit' ? <HabitIcon value={item.emoji} className="h-6 w-6" /> : kind === 'revise' ? <RotateCcw className="h-6 w-6" strokeWidth={1.75} /> : <BookOpen className="h-6 w-6" strokeWidth={1.75} />}
           </span>
         )}
         <div className="min-w-0">
           <p className="truncate text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</p>
-          <p className="text-sm font-medium text-white/60">{why}</p>
+          <p className="truncate text-sm font-medium text-white/60">{why}</p>
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
@@ -83,10 +101,10 @@ export default function UpNext({ pick, onDoneHabit, onDoneTask, onFocus, onPlan,
           onClick={finish}
           className="flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-neutral-900 transition hover:bg-neutral-200"
         >
-          <Check className="h-4 w-4" strokeWidth={2.5} /> Mark done
+          <Check className="h-4 w-4" strokeWidth={2.5} /> {kind === 'revise' ? 'Mark revised' : 'Mark done'}
         </button>
         <button
-          onClick={() => onFocus(25, kind === 'task' ? item.goalId || null : null, title)}
+          onClick={() => onFocus(25, kind === 'task' ? item.goalId || null : null, focusLabel)}
           className="flex items-center gap-1.5 rounded-full border border-white/25 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
         >
           <Play className="h-4 w-4" strokeWidth={2.25} /> Focus 25 min

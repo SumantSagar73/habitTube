@@ -12,6 +12,7 @@ Built for one user first (the author), so it is opinionated: monochrome, frosted
 | --- | --- |
 | **Today** | Greeting and one status line, week dots, **Up next** (the one thing to do now, with Mark done / Focus 25 min), habit checklist, tasks, your arc, a focus timer, the coach with one-tap openers, and a wrap-up card (mood, journal, check-in) that opens in the evening |
 | **Arcs** | Name your own 1–3 month push ("Winter arc", "Exam sprint"). A short intake generates a week-by-week path, habits and your first week of tasks. Max 2 active; a quiet arc must be resumed, paused or closed before starting another |
+| **Resources** | Track what you study (YouTube, GitHub, Udemy, articles, books, docs) against an arc or goal. Paste a course outline or table of contents and it becomes sections and parts you tick off, with notes and spaced revision (1, 3, 7, 14 days). Up next tells you what to continue or revise |
 | **Weekly check-in** | When a new arc week starts, say how last week felt and what got in the way. The coach plans the next week from your real results |
 | **Arc review** | When an arc ends: numbers, an honest AI read, close it and roll into the next one |
 | **Plan** | Year → Quarter → Month → Week goal cascade with rollups, daily tasks, reviews |

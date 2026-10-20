@@ -9,6 +9,8 @@ import ArcWizard from './components/ArcWizard'
 import { ChartColumn, House, MessageCircle, Repeat, Target } from 'lucide-react'
 import AppHeader from './components/AppHeader'
 import ArcCheckin from './components/ArcCheckin'
+import ResourceModal from './components/ResourceModal'
+import ResourcesPanel from './components/ResourcesPanel'
 import ArcReview from './components/ArcReview'
 import DayCheckin from './components/DayCheckin'
 import ArcsPanel from './components/ArcsPanel'
@@ -21,6 +23,7 @@ import PWABanner from './components/PWABanner'
 import SettingsPanel from './components/SettingsPanel'
 import TodayView from './components/TodayView'
 import { buildArcPatch, buildWeekPatch, pendingWeek } from './arcs'
+import { appendParts, markRevised, newResource, setPartDone } from './resources'
 import { GOAL_COLORS } from './palette'
 import { currentPeriods, nextPeriodStartKey, periodKeys } from './planUtils'
 import { buildTemplate } from './templates'
@@ -69,6 +72,7 @@ export default function App() {
   const [wizard, setWizard] = useState(false)
   const [arcWizard, setArcWizard] = useState(false)
   const [checkinArcId, setCheckinArcId] = useState(null)
+  const [resourceModal, setResourceModal] = useState(null) // null | 'new' | the resource being edited
   const [reviewArcId, setReviewArcId] = useState(null)
   const [arcSeed, setArcSeed] = useState('')
   const [coachSeed, setCoachSeed] = useState('')
@@ -600,6 +604,28 @@ export default function App() {
     })
   }
 
+  // ---- study resources ----
+  function updateResource(id, fn) {
+    setData((d) => ({ ...d, resources: (d.resources || []).map((r) => (r.id === id ? fn(r) : r)) }))
+  }
+  // fields: { type, title, url, arcId, goalId }; parts: parsed lines (a new resource gets them all, an edit appends)
+  function saveResource(fields, parts) {
+    if (resourceModal && resourceModal !== 'new') {
+      updateResource(resourceModal.id, (r) => {
+        const edited = { ...r, ...fields, updatedAt: Date.now() }
+        return parts.length ? appendParts(edited, parts) : edited
+      })
+    } else {
+      setData((d) => ({ ...d, resources: [...(d.resources || []), newResource({ ...fields, parts })] }))
+    }
+    setResourceModal(null)
+  }
+  function deleteResource(id) {
+    const res = (data.resources || []).find((r) => r.id === id)
+    if (!res || !window.confirm('Delete “' + res.title + '” and its notes?')) return
+    setData((d) => ({ ...d, resources: (d.resources || []).filter((r) => r.id !== id) }))
+  }
+
   // Create an arc: a month goal + week goal + habits + week-1 tasks, all tagged with the arc id.
   function applyArc(plan) {
     setData((d) => {
@@ -800,7 +826,19 @@ export default function App() {
         <main className="animate-fade-up" key={tab}>
           <Suspense fallback={viewFallback}>
           {tab === 'plan' && !timerFs && (
-            <ArcsPanel data={data} onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
+            <>
+              <ArcsPanel data={data} onNew={() => { setArcSeed(''); setArcWizard(true) }} onResolveArc={resolveArc} onCheckin={setCheckinArcId} onReview={setReviewArcId} />
+              <ResourcesPanel
+                resources={data.resources || []}
+                arcs={data.arcs || []}
+                goals={data.goals}
+                today={todayKey()}
+                onAdd={() => setResourceModal('new')}
+                onEdit={setResourceModal}
+                onUpdate={updateResource}
+                onDelete={deleteResource}
+              />
+            </>
           )}
           {tab === 'today' && (
             <TodayView
@@ -840,6 +878,9 @@ export default function App() {
               onSaveMotivation={setMotivation}
               name={displayName(user)}
               arcs={data.arcs}
+              resources={data.resources || []}
+              onDonePart={(resId, partId) => updateResource(resId, (r) => setPartDone(r, partId, true, todayKey()))}
+              onRevised={(resId, partId) => updateResource(resId, (r) => markRevised(r, partId, todayKey()))}
               onNewArc={() => { setArcSeed(''); setArcWizard(true) }}
               wrapUp={
                 !timerFs && (
@@ -1025,6 +1066,17 @@ export default function App() {
           />
         )
       })()}
+      {resourceModal && (
+        <ResourceModal
+          initial={resourceModal === 'new' ? null : resourceModal}
+          arcs={data.arcs || []}
+          goals={data.goals}
+          aiEnabled={data.aiEnabled}
+          model={data.aiModel}
+          onSave={saveResource}
+          onClose={() => setResourceModal(null)}
+        />
+      )}
       {reviewArcId && (() => {
         const arc = (data.arcs || []).find((x) => x.id === reviewArcId)
         if (!arc) return null

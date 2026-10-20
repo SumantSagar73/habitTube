@@ -30,6 +30,7 @@ const DEFAULT_DATA = {
   skips: {}, // { habitId: ['YYYY-MM-DD', ...] } — habits consciously skipped that day
   focusAllowlist: [], // domains allowed during a focus session (Focus blocker extension)
   focusBlocklist: ['youtube.com'], // off-limits domains — hard-blocked, no temp-allow escape
+  resources: [], // study resources attached to goals/arcs, see resources.js
   _ts: {}, // per-entry edit times, used to merge devices (see mergeState.js)
   _del: {}, // per-entry delete times (tombstones)
   shareProfile: false, // when true, push public snapshot for sharing

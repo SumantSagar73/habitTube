@@ -40,6 +40,10 @@ Hosted calls go to `/ai/chat/completions` (legacy `/groq/*` is an alias). Locall
 
 An arc is a user-named 1-3 month push stored in `data.arcs`. The wizard generates a compact JSON plan; applying it creates a month goal (under the current quarter goal), a week goal, habits and week-1 tasks, all tagged with `arcId`. Max 2 active arcs; an arc quiet for 5+ days must be resumed, paused or closed before a new one starts. Each new week offers a check-in (`pendingWeek` -> `aiNextWeek`) that plans the next week from real results; finished arcs get an end review (`needsReview` -> `aiArcReview`). `data.dayCheckins` holds the evening check-ins and feeds the coach context.
 
+### Resources (`resources.js`, `resourceParse.js`, `ResourcesPanel`, `ResourceModal`)
+
+Study material (YouTube, GitHub, Udemy, article, book, docs) in `data.resources`, each linked to an arc, a goal or neither ("Unsorted"). A resource is a list of **parts** grouped by section; each part has `done` (with `doneAt`) and a separate `revise` flag. Flagged parts return on a spaced schedule (`REVISE_STEPS` = 1, 3, 7, 14 days; `markRevised` advances it, the last round clears the flag). Data comes from text the user pastes: `parseOutline` (pure code) handles curricula, playlists, tables of contents and README checklists; when it flags a paste as messy the modal offers `aiOrganizeResource` (AI is a button, never automatic, and never invents links). Resources merge by id like habits (`x|id` in `mergeState.js`). `pickUpNext` offers a due revision and the next part of started or arc-linked resources; the coach context and the weekly check-in get a one-line study summary (`studySummary`). Resources live in the Plan tab under the arcs.
+
 ### Coach system (`CoachWidget.jsx` + `CoachChat.jsx`)
 
 `CoachWidget` is a floating button that opens `CoachChat`. Chat messages live in `data.chat.messages` (persisted in the store). When the coach proposes a plan, the JSON is stripped from the displayed text and rendered as a confirm/reject UI via `applyPlan()` in `App.jsx`, which writes goals and tasks into the store.

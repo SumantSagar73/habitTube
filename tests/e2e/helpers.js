@@ -41,6 +41,15 @@ const REVIEW = {
   next: { theme: 'Strength base', why: 'Build on the running habit' },
 }
 
+// What "Organize with AI" returns for a messy paste of a resource outline.
+const ORGANIZED = {
+  parts: [
+    ['Basics', 'Intro to the topic', 3],
+    ['Basics', 'Setting things up', 5],
+    ['Going further', 'A first real project', 20],
+  ],
+}
+
 const sse = (text) => `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`
 
 // seed: extra fields merged into the initial saved state (e.g. habits).
@@ -90,7 +99,14 @@ export async function mockBackend(page, { signedIn = true, seed = {}, remote = n
     const system = String(body.messages?.[0]?.content || '')
     let content = 'Mocked motivation.'
     if (body.response_format) {
-      content = JSON.stringify(system.includes('NEXT week') ? WEEK_PLAN : system.includes('reviewing a finished arc') ? REVIEW : ARC_PLAN)
+      const reply = system.includes('NEXT week')
+        ? WEEK_PLAN
+        : system.includes('reviewing a finished arc')
+          ? REVIEW
+          : system.includes('study outline')
+            ? ORGANIZED
+            : ARC_PLAN
+      content = JSON.stringify(reply)
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ choices: [{ message: { content } }] }) })
   })

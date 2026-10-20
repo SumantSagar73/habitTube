@@ -1,8 +1,9 @@
 import { goalPercent, goalsAt, LEVEL_LABEL, periodLabel, tasksInPeriod } from './planUtils'
 import { ICON_KEYS_PROMPT } from './iconKeys'
-import { currentStreak, habitRate, habitsForDate, isDone, todayKey } from './utils'
+import { addDays, currentStreak, dateKey, habitRate, habitsForDate, isDone, todayKey } from './utils'
 import { supabase } from './utils/supabase'
 import { arcDay, normalizeArcPlan, normalizeWeekPlan } from './arcs'
+import { studySummary } from './resources'
 import { byokRequest, getByok } from './byok'
 
 export const DEFAULT_MODEL = 'openai/gpt-oss-120b'
@@ -275,6 +276,7 @@ export async function aiNextWeek(arc, weekIdx, stats, feedback, model) {
     feedback.rating ? `They said last week was: ${feedback.rating}.` : '',
     feedback.blockers?.length ? `What got in the way: ${feedback.blockers.join(', ')}.` : '',
     feedback.extra ? `Their note: ${feedback.extra}` : '',
+    feedback.study?.length ? `Study resources on this arc: ${feedback.study.join('; ')}.` : '',
   ].filter(Boolean).join('\n')
   const out = await chat(
     [{ role: 'system', content: WEEK_SYSTEM }, { role: 'user', content: user }],
@@ -360,7 +362,7 @@ UPDATES — adjust existing items (user still confirms):
 
 const MOOD_LABEL = { 1: 'Rough', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' }
 
-export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {}, dayCheckins = {}, arcs = [] }) {
+export function buildCoachContext({ habits = [], completions = {}, goals = [], tasks = {}, missNotes = {}, reviews = {}, moods = {}, visions = {}, notes = {}, dayCheckins = {}, arcs = [], resources = [] }) {
   const ctx = { goals, tasks, habits, completions }
   const key = todayKey()
   const byId = Object.fromEntries(goals.map((g) => [g.id, g]))
@@ -421,6 +423,8 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
       return `"${a.title}" day ${day}/${total}, week ${weekIdx + 1}: ${wk.theme || ''}${wk.milestone ? ` (${wk.milestone})` : ''}${a.minDay ? `; minimum day: ${a.minDay}` : ''}`
     })
 
+  const studyLines = studySummary(resources, { sinceKey: dateKey(addDays(new Date(), -6)) })
+
   const lastReview = Object.entries(reviews)
     .filter(([, r]) => r?.note)
     .sort((a, b) => (b[1].ratedAt || 0) - (a[1].ratedAt || 0))[0]
@@ -444,6 +448,7 @@ export function buildCoachContext({ habits = [], completions = {}, goals = [], t
     reasons.length ? `Recent reasons for skipping: ${reasons.slice(0, 10).join(' / ')}.` : 'No skip reasons logged.',
     notesLine,
     arcLines.length ? `Active arcs: ${arcLines.join(' | ')}.` : '',
+    studyLines.length ? `Study resources: ${studyLines.join('; ')}.` : '',
     checkinLine,
     lastReview ? `Most recent review note: "${lastReview[1].note}".` : '',
   ].filter(Boolean).join('\n')
@@ -641,4 +646,33 @@ export async function aiArcReview(arc, summary, model) {
     lessons: list(raw.lessons),
     next: raw.next?.theme ? { theme: String(raw.next.theme).trim(), why: String(raw.next.why || '').trim() } : null,
   }
+}
+
+const ORGANIZE_SYSTEM = `You turn pasted text (a course curriculum, a playlist, a table of contents, a README, an article's headings) into a study outline. Reply with ONLY one JSON object, no prose, no code fences.
+Schema: {"parts":[["section name or empty string","lecture / video / chapter title",minutes or null], ...]}
+Rules: keep the original order; one entry per lecture, video, chapter or topic; use section names only when the text has real groupings; drop navigation, ads, prices and button labels; titles under 14 words; at most 300 entries; never invent content that is not in the text.`
+
+// Fallback for pastes the code parser could not make sense of. Returns [{ title, section, minutes }].
+export async function aiOrganizeResource(raw, type, model) {
+  const text = String(raw || '').slice(0, 9000)
+  const out = await chat(
+    [
+      { role: 'system', content: ORGANIZE_SYSTEM },
+      { role: 'user', content: `Resource type: ${type}.\n\nPasted text:\n${text}` },
+    ],
+    { model, temperature: 0.2, max_tokens: 4000, json: true, reasoning: 'low' }
+  )
+  let parsed = null
+  try { parsed = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)) } catch { /* handled below */ }
+  const parts = (Array.isArray(parsed?.parts) ? parsed.parts : [])
+    .map((p) => (Array.isArray(p) ? { section: p[0], title: p[1], minutes: p[2] } : p))
+    .filter((p) => p && String(p.title || '').trim())
+    .slice(0, 300)
+    .map((p) => ({
+      title: String(p.title).trim().slice(0, 160),
+      section: String(p.section || '').trim().slice(0, 120),
+      minutes: Number.isFinite(Number(p.minutes)) && Number(p.minutes) > 0 ? Math.round(Number(p.minutes)) : null,
+    }))
+  if (!parts.length) throw new Error('The AI could not find an outline in that text. Try pasting the list of titles only.')
+  return parts
 }

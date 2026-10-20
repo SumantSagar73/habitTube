@@ -92,6 +92,9 @@ export default function TodayView({
   onDeleteRecurring,
   name,
   arcs,
+  resources,
+  onDonePart,
+  onRevised,
   onNewArc,
   afterCoach,
   wrapUp,
@@ -155,7 +158,7 @@ export default function TodayView({
   const evening = now.getHours() >= 18
   const [wrapOpen, setWrapOpen] = useState(evening)
   const [showMissPanel, setShowMissPanel] = useState(false)
-  const pick = pickUpNext({ habits: locked ? [] : habits, completions, skips, tasks, key, nowHM }) // strict mode locks habits, so never offer one
+  const pick = pickUpNext({ habits: locked ? [] : habits, completions, skips, tasks, key, nowHM, resources, arcs }) // strict mode locks habits, so never offer one
 
   const sorted = [...due].sort((a, b) => {
     const da = isDone(a, completions, key) || isSkipped(a)
@@ -303,7 +306,7 @@ export default function TodayView({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left Column: Habits checklist, Daily tasks, Daily Journal (span 8) */}
         <div className="space-y-6 lg:col-span-8">
-          <UpNext pick={pick} dayKey={key} onDoneHabit={onToggle} onDoneTask={onToggleTask} onFocus={onStartFocus} onPlan={() => onOpenCoach?.('Plan my day. Pick my top 3 priorities from today’s habits and tasks and tell me what to do first.')} />
+          <UpNext pick={pick} dayKey={key} onDoneHabit={onToggle} onDoneTask={onToggleTask} onDonePart={onDonePart} onRevised={onRevised} onFocus={onStartFocus} onPlan={() => onOpenCoach?.('Plan my day. Pick my top 3 priorities from today’s habits and tasks and tell me what to do first.')} />
           <div className="lg:hidden">{coachEl}</div>
           {afterCoach}
           {/* Habit checklist */}

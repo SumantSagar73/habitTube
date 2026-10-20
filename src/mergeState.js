@@ -9,7 +9,7 @@
 //   notes         one entry per date                   path  n|date
 //   moods         one entry per date                   path  m|date
 //   dayCheckins   one entry per date                   path  k|date
-//   habits / goals / arcs / recurringTasks  by id      path  h|id  g|id  a|id  r|id
+//   habits / goals / arcs / recurringTasks / resources  by id   path  h|id  g|id  a|id  r|id  x|id
 //
 // state._ts[path]  = when that entry was last added or changed
 // state._del[path] = when it was removed (tombstone, so a delete isn't undone by a merge)
@@ -17,7 +17,7 @@
 // Everything else (settings, caches, ...) keeps whole-key "newer copy wins".
 // Data written before stamps existed has none: entries present on either side are kept.
 
-const ITEMS = { habits: 'h', goals: 'g', arcs: 'a', recurringTasks: 'r' }
+const ITEMS = { habits: 'h', goals: 'g', arcs: 'a', recurringTasks: 'r', resources: 'x' }
 const SLICES = [...Object.keys(ITEMS), 'completions', 'tasks', 'notes', 'moods', 'dayCheckins']
 
 const DEL_TTL = 90 * 86400000 // tombstones older than this are dropped
