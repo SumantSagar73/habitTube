@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { toIconKey } from './icons'
+import { toStoredEmoji } from './icons'
 import exportExcel from './exportExcel'
 import { playAlarm } from './sounds'
 import AuthScreen from './components/AuthScreen'
@@ -382,7 +382,7 @@ export default function App() {
   }
 
   function installHabitPack(habits) {
-    setData((d) => ({ ...d, habits: [...d.habits, ...habits] }))
+    setData((d) => ({ ...d, habits: [...d.habits, ...habits.map((h) => ({ ...h, emoji: toStoredEmoji(h.emoji) }))] }))
   }
 
   function addRecurringTask(task) {
@@ -552,7 +552,7 @@ export default function App() {
         id: uid(),
         createdAt: todayKey(),
         name: it.name.trim(),
-        emoji: toIconKey(it.emoji, 'dumbbell'),
+        emoji: toStoredEmoji(it.emoji),
         days: Array.isArray(it.days) && it.days.length ? it.days.map(Number) : [0, 1, 2, 3, 4, 5, 6],
         time: it.time || '',
         color: '#171717',

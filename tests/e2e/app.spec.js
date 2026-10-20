@@ -201,3 +201,21 @@ test('legacy emoji habits render as icons, never as the raw glyph', async ({ pag
   await expect(page.getByText('Morning run').first()).toBeVisible()
   await expect(page.locator('main')).not.toContainText('🏃')
 })
+
+test('new habits are saved with a real emoji, and older icon-key habits are converted', async ({ page }) => {
+  await mockBackend(page, { seed: { habits: [{ id: 'old', name: 'Saved as a key', emoji: 'run', days: [0, 1, 2, 3, 4, 5, 6], createdAt: '2020-01-01', time: '' }] } })
+  await page.goto('/')
+  await expect(page.getByText('Saved as a key').first()).toBeVisible()
+
+  // the older habit was converted on load
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('habittube-data-v1')).habits.map((h) => [h.name, h.emoji]))
+  await expect.poll(saved).toEqual(expect.arrayContaining([['Saved as a key', '🏃']]))
+
+  // a habit created in the modal is stored as an emoji too, while the picker shows icons
+  await page.getByRole('button', { name: 'New' }).click()
+  await page.getByRole('button', { name: 'Habit recurring' }).click()
+  await page.getByPlaceholder(/Read 20 minutes/).fill('Read at night')
+  await page.getByTitle('book').click()
+  await page.getByRole('button', { name: 'Create habit' }).click()
+  await expect.poll(saved).toEqual(expect.arrayContaining([['Read at night', '📚']]))
+})

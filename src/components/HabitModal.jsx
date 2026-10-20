@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HabitIcon, ICON_KEYS, toIconKey } from '../icons'
+import { HabitIcon, ICON_KEYS, toIconKey, toStoredEmoji } from '../icons'
 import { WEEKDAYS } from '../utils'
 
 export default function HabitModal({ initial, habits = [], onSave, onClose }) {
@@ -16,7 +16,7 @@ export default function HabitModal({ initial, habits = [], onSave, onClose }) {
   function submit(e) {
     e.preventDefault()
     if (!name.trim() || days.length === 0) return
-    onSave({ name: name.trim(), emoji, days, time, stackAfter: stackAfter || null, color: initial?.color || '#171717' })
+    onSave({ name: name.trim(), emoji: toStoredEmoji(emoji), days, time, stackAfter: stackAfter || null, color: initial?.color || '#171717' })
   }
 
   const labelCls = 'mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500'

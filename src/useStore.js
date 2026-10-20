@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { isIconKey, KEY_TO_EMOJI } from './iconKeys'
 import { stampChanges } from './mergeState'
 
 const STORAGE_KEY = 'habittube-data-v1'
@@ -41,7 +42,12 @@ function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_DATA
-    return { ...DEFAULT_DATA, ...JSON.parse(raw) }
+    const saved = JSON.parse(raw)
+    // Habits saved while the web app stored icon keys ('run') get their emoji back, so the mobile app can show them.
+    if (Array.isArray(saved.habits) && saved.habits.some((h) => isIconKey(h?.emoji))) {
+      saved.habits = saved.habits.map((h) => (isIconKey(h?.emoji) ? { ...h, emoji: KEY_TO_EMOJI[h.emoji] } : h))
+    }
+    return { ...DEFAULT_DATA, ...saved }
   } catch {
     return DEFAULT_DATA
   }

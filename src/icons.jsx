@@ -67,7 +67,7 @@ import {
   Timer,
   Trophy,
 } from 'lucide-react'
-import { ICON_KEYS } from './iconKeys'
+import { EMOJI_TO_KEY, ICON_KEYS, toStoredEmoji } from './iconKeys'
 
 export const ICONS = {
   dumbbell: Dumbbell,
@@ -133,19 +133,7 @@ export const ICONS = {
   timer: Timer,
 }
 
-export { ICON_KEYS }
-
-const EMOJI_TO_KEY = {
-  '💪': 'dumbbell', '🏋': 'dumbbell', '🏃': 'run', '🚶': 'walk', '🤸': 'stretch', '🚴': 'bike',
-  '📚': 'book', '📖': 'book', '✍': 'pen', '✏': 'pencil', '📝': 'pen', '📔': 'journal', '🎓': 'study',
-  '🧠': 'brain', '💡': 'bulb', '💻': 'code', '💼': 'work', '🎯': 'target', '🚀': 'rocket', '⭐': 'star',
-  '⚡': 'zap', '🔥': 'flame', '✨': 'sparkles', '✅': 'check', '⏰': 'clock',
-  '💧': 'water', '🥗': 'salad', '🍎': 'apple', '☕': 'coffee', '💊': 'pill', '❤': 'heart',
-  '🧘': 'meditate', '🙏': 'gratitude', '🌬': 'wind', '🌿': 'leaf', '🌲': 'tree',
-  '🌅': 'sunrise', '☀': 'sun', '🌙': 'moon', '😴': 'bed', '🛏': 'bed', '🚿': 'shower', '🧹': 'clean', '🏠': 'home',
-  '💰': 'money', '🎸': 'guitar', '🎧': 'headphones', '🎵': 'music', '📷': 'camera',
-  '📵': 'nophone', '📱': 'phone', '🚭': 'nosmoke', '🦷': 'sparkles', '🙂': 'smile',
-}
+export { ICON_KEYS, toStoredEmoji }
 
 export function toIconKey(value, fallback = 'sparkles') {
   if (!value) return fallback
