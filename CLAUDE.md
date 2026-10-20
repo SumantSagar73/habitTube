@@ -12,7 +12,7 @@ npm run test:e2e  # Playwright e2e (system Edge by default; PW_CHANNEL=chrome or
 node migrate.js   # Legacy one-off: copies old local MongoDB states into Supabase (not needed for new setups)
 ```
 
-Playwright e2e tests live in `tests/e2e` (`npm run test:e2e`); Supabase and the AI are mocked, see `tests/e2e/helpers.js`.
+Tests live in `tests/` and run with `npm run test:e2e`: `tests/e2e` drives the app in a browser with Supabase and the AI mocked (`tests/e2e/helpers.js`), `tests/unit` holds pure-function tests (the sync merge).
 
 ## Architecture
 
@@ -22,9 +22,9 @@ Playwright e2e tests live in `tests/e2e` (`npm run test:e2e`); Supabase and the 
 
 `useStore` is a plain `useState` hook over a single large object persisted to `localStorage` under the key `habittube-data-v1`. The full shape is documented in `DEFAULT_DATA` at the top of that file. All state mutations in `App.jsx` use the functional `setData(d => ({...d, ...patch}))` pattern — never direct assignment.
 
-### Sync layer (`useSync.js` + `sync.js`)
+### Sync layer (`useSync.js` + `sync.js` + `mergeState.js`)
 
-Offline-first, last-write-wins by timestamp. On login: pull Supabase, adopt if remote `updatedAt` is newer than `localStorage('habittube-updated-at')`. On every `data` change: debounce 1200ms, push the whole state blob to Supabase table `states` (upsert on `userId`). `userId` is the **Supabase auth user id**; a legacy random ID in `localStorage('habittube-user-id')` is only read once to migrate old data on first login. `syncStatus` (`offline | syncing | synced`) is shown in the header. Row-level security on `states` / `state_snapshots` must scope rows to `auth.uid()` (see `supabase/state_snapshots.sql`).
+Offline-first. Local edits push the whole state blob to Supabase table `states` (debounced 1200ms, upsert on `userId` = the **Supabase auth user id**; a legacy random ID in `localStorage('habittube-user-id')` is only read once to migrate old data on first login). The cloud copy is pulled on login, when the tab regains focus and every 90s, and **merged per item** instead of replaced: `useStore`'s `setData` stamps every changed entry (`_ts`) or removed entry (`_del` tombstones) via `stampChanges`, and `mergeStates` keeps both devices' work (completions per date+habit, tasks per date+id, notes/moods/check-ins per date, habits/goals/arcs/recurring tasks by id; settings = newer copy wins; chat sessions, notifications and focus log are unioned). Cloud merges must use the raw setter (`setDataRaw`) so they keep their stamps. `syncStatus` (`offline | syncing | synced`) is shown in the header. Row-level security on `states` / `state_snapshots` must scope rows to `auth.uid()` (`supabase/states_rls.sql`, `supabase/state_snapshots.sql`).
 
 ### Goal cascade (`planUtils.js`)
 

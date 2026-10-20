@@ -73,7 +73,7 @@ tests/e2e/           Playwright suite
 
 State is a single object persisted to `localStorage`; shape documented in `DEFAULT_DATA` (`useStore.js`). Mutations use `setData(d => ({ ...d, ... }))`.
 
-Sync is offline-first and last-write-wins: on login pull Supabase and adopt the remote copy if newer, then debounce-push the whole blob (table `states`, keyed by the Supabase auth user id). Daily snapshots go to `state_snapshots` for restore.
+Sync is offline-first. Edits push the whole blob (table `states`, keyed by the Supabase auth user id); the cloud copy is pulled on login, on tab focus and every 90 seconds, and **merged per item** (completions per date and habit, tasks per date and id, notes per date, habits/goals/arcs by id) with edit timestamps and delete tombstones, so changes from two devices no longer overwrite each other. Daily snapshots go to `state_snapshots` for restore.
 
 **Row-level security matters.** Run [`supabase/state_snapshots.sql`](supabase/state_snapshots.sql) and make sure `states` has an `auth.uid()`-scoped policy too, otherwise any key holder can read every user's data.
 

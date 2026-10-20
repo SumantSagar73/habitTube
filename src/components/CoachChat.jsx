@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import { HabitIcon } from '../icons'
 import { aiChatStream, aiCoachReply, buildCoachContext, parseProposal } from '../ai'
 import { uid } from '../utils'
+import { COACH_ACTIONS } from '../coachActions'
 import AIText from './AIText'
 
 const LEVEL_BADGE = { year: 'Year', quarter: 'Quarter', month: 'Month', week: 'Week' }
@@ -112,15 +113,6 @@ function ProposalCard({ items, applied, dismissed, onAdd, onDismiss }) {
   )
 }
 
-const STARTERS = [
-  'I want to build a workout habit',
-  'Help me plan my week',
-  'How am I doing this week?',
-  'I keep skipping my habits — help me fix it.',
-  'Build me a complete fitness plan',
-  'Should I push harder or slow down?',
-  'Help me plan a realistic week.',
-]
 
 export default function CoachChat({ enabled, model, data, chatSessions, activeChatId, onSetChatSessions, onSetActiveChatId, onApplyPlan, seed = '', onSeedUsed }) {
   const [input, setInput] = useState('')
@@ -255,7 +247,7 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
   const empty = messages.length === 0 && !streaming
 
   return (
-    <div className="flex h-[calc(100vh-200px)] min-h-[500px] overflow-hidden rounded-3xl border border-neutral-200 dark:border-neutral-800">
+    <div className="flex h-[calc(100vh-200px)] min-h-[500px] glass overflow-hidden rounded-3xl">
       {/* Sidebar */}
       <aside className={`flex flex-col border-r border-neutral-200 bg-neutral-50 transition-all dark:border-neutral-800 dark:bg-[#0d0d0d] ${sidebarOpen ? 'w-64' : 'hidden md:flex md:w-64'}`}>
         <div className="p-3">
@@ -305,7 +297,7 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
       </aside>
 
       {/* Chat area */}
-      <div className="flex flex-1 flex-col overflow-hidden dark:bg-[#111]">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* header */}
         <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
           {/* Mobile: hamburger to toggle sidebar */}
@@ -329,7 +321,7 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
           {messages.length > 0 && (
             <button
               onClick={newChat}
-              className="ml-auto rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-500"
+              className="ml-auto rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-bold md:hidden text-neutral-500 transition hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-500"
             >
               New chat
             </button>
@@ -344,13 +336,13 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
                 Talk to me. Ask how you're doing, where you're slipping, or whether to push or rest.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
-                {STARTERS.map((s) => (
+                {COACH_ACTIONS.map((s) => (
                   <button
-                    key={s}
-                    onClick={() => send(s)}
+                    key={s.label}
+                    onClick={() => send(s.prompt)}
                     className="rounded-full border border-neutral-200 px-3.5 py-2 text-sm font-medium text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:text-white"
                   >
-                    {s}
+                    {s.label}
                   </button>
                 ))}
               </div>
@@ -360,7 +352,7 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
               {messages.map((m, i) =>
                 m.role === 'user' ? (
                   <div key={i} className="flex justify-end">
-                    <div className="glass max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white dark: dark:text-neutral-900">
+                    <div className="max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
                       {m.content}
                     </div>
                   </div>
@@ -400,6 +392,20 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
 
         {/* composer */}
         <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
+          {!empty && (
+            <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
+              {COACH_ACTIONS.map((s) => (
+                <button
+                  key={s.label}
+                  disabled={busy}
+                  onClick={() => send(s.prompt)}
+                  className="shrink-0 rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900 disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <textarea
               value={input}
@@ -411,7 +417,7 @@ export default function CoachChat({ enabled, model, data, chatSessions, activeCh
                 }
               }}
               rows={1}
-              placeholder="Message your coach…  (Enter to send)"
+              placeholder="Message your coach…"
               className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-neutral-200 bg-transparent px-4 py-3 text-sm font-medium text-neutral-900 outline-none transition focus:border-neutral-900 placeholder:text-neutral-400 dark:border-neutral-800 dark:text-white dark:placeholder:text-neutral-600 dark:focus:border-white"
             />
             <button

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { stampChanges } from './mergeState'
 
 const STORAGE_KEY = 'habittube-data-v1'
 
@@ -28,6 +29,8 @@ const DEFAULT_DATA = {
   skips: {}, // { habitId: ['YYYY-MM-DD', ...] } — habits consciously skipped that day
   focusAllowlist: [], // domains allowed during a focus session (Focus blocker extension)
   focusBlocklist: ['youtube.com'], // off-limits domains — hard-blocked, no temp-allow escape
+  _ts: {}, // per-entry edit times, used to merge devices (see mergeState.js)
+  _del: {}, // per-entry delete times (tombstones)
   shareProfile: false, // when true, push public snapshot for sharing
   arcs: [], // time-boxed arcs, see arcs.js
   dayCheckins: {}, // { 'YYYY-MM-DD': { match, blockers, win, at } } evening check-ins
@@ -45,7 +48,10 @@ function load() {
 }
 
 export default function useStore() {
-  const [data, setData] = useState(load)
+  const [data, setRaw] = useState(load)
+  // Every user edit goes through here so changed entries get a timestamp. Merges from the
+  // cloud use setRaw instead (they must keep the stamps they came with).
+  const setData = useCallback((update) => setRaw((prev) => stampChanges(prev, typeof update === 'function' ? update(prev) : update)), [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -63,5 +69,5 @@ export default function useStore() {
     }
   }, [data.theme])
 
-  return [data, setData]
+  return [data, setData, setRaw]
 }

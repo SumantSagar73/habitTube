@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react'
 import { aiDailyMotivation } from '../ai'
+import { COACH_ACTIONS as ACTIONS } from '../coachActions'
 import { todayKey } from '../utils'
 
-// One-tap openers: each starts a fresh coach chat with the question already asked.
-const ACTIONS = [
-  { label: 'Plan my day', prompt: 'Plan my day. Pick my top 3 priorities from today’s habits and tasks and tell me what to do first.' },
-  { label: 'I’m stuck', prompt: 'I’m stuck and low on energy. Give me the minimum version of today that still counts.' },
-  { label: 'Adjust today', prompt: 'Adjust today’s plan realistically for the time I have left. What should I drop or move?' },
-  { label: 'How am I doing?', prompt: 'How am I doing this week? Be honest and tell me the one thing to fix.' },
-]
 
 // Only one mounted instance should fire the daily generation (Today renders it for two breakpoints).
 let autoRanFor = null

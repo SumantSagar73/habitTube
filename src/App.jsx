@@ -61,7 +61,7 @@ function displayName(user) {
 }
 
 export default function App() {
-  const [data, setData] = useStore()
+  const [data, setData, setDataRaw] = useStore()
   const [tab, setTab] = useState('today')
   const [planMode, setPlanMode] = useState('cascade') // 'cascade' | 'outline'
   const [modal, setModal] = useState(null) // null | 'new' | habit object
@@ -103,7 +103,7 @@ export default function App() {
   const dark = data.theme === 'dark' || (data.theme === 'auto' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   useReminders(data)
   useNotifications(data, setData)
-  const syncStatus = useSync(data, setData, user?.id)
+  const syncStatus = useSync(data, setDataRaw, user?.id)
 
   // Daily backup snapshot — once per calendar day, after the first sync settles
   // so we snapshot the reconciled state (not the pre-pull local state).

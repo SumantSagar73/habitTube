@@ -54,6 +54,15 @@ test.describe('signed in', () => {
     await page.getByRole('button', { name: 'Plan my day' }).filter({ visible: true }).first().click()
     await expect(page.locator('.rounded-br-md', { hasText: 'Plan my day. Pick my top 3 priorities' })).toBeVisible()
     await expect(page.getByText('Mocked coach reply.')).toBeVisible()
+
+    // regression: your own message must stay readable (it was once turned into a dark glass card)
+    const bubble = page.locator('.rounded-br-md', { hasText: 'Plan my day. Pick my top 3 priorities' })
+    const colors = await bubble.evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, fg: getComputedStyle(el).color }))
+    expect(colors.bg).toBe('rgb(255, 255, 255)')
+    expect(colors.fg).not.toBe(colors.bg)
+
+    // quick actions stay one tap away inside the conversation
+    await expect(page.getByRole('button', { name: 'I’m stuck' }).filter({ visible: true }).first()).toBeVisible()
   })
 
   test('settings is a sectioned panel; toggles keep full width; BYOK stays out of synced data', async ({ page }) => {

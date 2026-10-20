@@ -44,8 +44,10 @@ const REVIEW = {
 const sse = (text) => `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`
 
 // seed: extra fields merged into the initial saved state (e.g. habits).
-export async function mockBackend(page, { signedIn = true, seed = {} } = {}) {
-  const ai = { calls: [] }
+// remote: { state, updatedAt } the fake cloud already holds for this user. The returned object
+// also records every state the app pushes (`pushes`) so tests can see what reached the cloud.
+export async function mockBackend(page, { signedIn = true, seed = {}, remote = null } = {}) {
+  const ai = { calls: [], pushes: [] }
 
   await page.addInitScript(({ signedIn, ref, seed }) => {
     if (!signedIn) return
@@ -67,7 +69,14 @@ export async function mockBackend(page, { signedIn = true, seed = {} } = {}) {
   // Supabase: no remote state; every write succeeds.
   await page.route(/\.supabase\.co\//, (route) => {
     const req = route.request()
-    if (req.method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: 'null' })
+    const isStates = req.url().includes('/rest/v1/states')
+    if (req.method() === 'GET') {
+      const body = isStates && remote ? JSON.stringify(remote) : 'null'
+      return route.fulfill({ status: 200, contentType: 'application/json', body })
+    }
+    if (isStates) {
+      try { ai.pushes.push(req.postDataJSON()) } catch { /* not JSON */ }
+    }
     return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' })
   })
 

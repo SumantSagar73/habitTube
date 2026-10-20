@@ -274,7 +274,7 @@ export default function CoachWidget({ enabled, model, data, messages, onSetMessa
                 {messages.map((m, i) =>
                   m.role === 'user' ? (
                     <div key={i} className="flex justify-end">
-                      <div className="glass max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-3.5 py-2.5 text-sm font-medium text-white dark: dark:text-neutral-900">
+                      <div className="max-w-[80%] rounded-2xl rounded-br-md bg-neutral-900 px-3.5 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
                         {m.content}
                       </div>
                     </div>
